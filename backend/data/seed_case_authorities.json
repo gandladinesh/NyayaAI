@@ -1,0 +1,32 @@
+[
+  {
+    "case_id": "maneka-gandhi-v-union-of-india-1978",
+    "case_name": "Maneka Gandhi v. Union of India",
+    "citation": "(1978) 1 SCC 248",
+    "court": "Supreme Court of India",
+    "judgment_date": "1978-01-25",
+    "provision_ids": [
+      "constitution-india-article-21"
+    ],
+    "legal_principle": "The procedure affecting life or personal liberty under Article 21 must be fair, just and reasonable, and not arbitrary.",
+    "source_name": "Supreme Court of India",
+    "source_type": "official_court_source",
+    "source_url": "https://www.sci.gov.in/",
+    "verification_status": "verified"
+  },
+  {
+    "case_id": "justice-ks-puttaswamy-v-union-of-india-2017",
+    "case_name": "Justice K.S. Puttaswamy (Retd.) v. Union of India",
+    "citation": "(2017) 10 SCC 1",
+    "court": "Supreme Court of India",
+    "judgment_date": "2017-08-24",
+    "provision_ids": [
+      "constitution-india-article-21"
+    ],
+    "legal_principle": "The right to privacy is protected as a fundamental right under the Constitution, including through the protections of Article 21.",
+    "source_name": "Supreme Court of India",
+    "source_type": "official_court_source",
+    "source_url": "https://www.sci.gov.in/",
+    "verification_status": "verified"
+  }
+]
