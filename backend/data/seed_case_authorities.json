@@ -89,5 +89,50 @@
     "source_type": "official_court_source",
     "source_url": "https://www.sci.gov.in/",
     "verification_status": "verified"
+  },
+  {
+    "case_id": "gurbaksh-singh-sibbia-v-state-of-punjab-1980",
+    "case_name": "Gurbaksh Singh Sibbia v. State of Punjab",
+    "citation": "(1980) 2 SCC 565",
+    "court": "Supreme Court of India",
+    "judgment_date": "1980-04-09",
+    "provision_ids": [
+      "bnss-2023-section-482"
+    ],
+    "legal_principle": "Anticipatory bail under procedural criminal law is an integral component of personal liberty under Article 21; powers of the High Court and Sessions Court to grant it should not be circumscribed by unwarranted judge-made restrictions.",
+    "source_name": "Supreme Court of India",
+    "source_type": "official_court_source",
+    "source_url": "https://www.sci.gov.in/",
+    "verification_status": "verified"
+  },
+  {
+    "case_id": "rajnesh-v-neha-2021",
+    "case_name": "Rajnesh v. Neha",
+    "citation": "(2021) 2 SCC 324",
+    "court": "Supreme Court of India",
+    "judgment_date": "2020-11-04",
+    "provision_ids": [
+      "bnss-2023-section-126"
+    ],
+    "legal_principle": "Maintenance is a social justice measure to prevent destitution; both parties must file comprehensive affidavits of disclosure of assets and liabilities to determine just and realistic quantum.",
+    "source_name": "Supreme Court of India",
+    "source_type": "official_court_source",
+    "source_url": "https://www.sci.gov.in/",
+    "verification_status": "verified"
+  },
+  {
+    "case_id": "social-action-forum-v-union-of-india-2018",
+    "case_name": "Social Action Forum for Manav Adhikar v. Union of India",
+    "citation": "(2018) 10 SCC 443",
+    "court": "Supreme Court of India",
+    "judgment_date": "2018-09-14",
+    "provision_ids": [
+      "bns-2023-section-85"
+    ],
+    "legal_principle": "The statutory provision dealing with cruelty by husband or relatives was enacted to combat marital cruelty; investigation and arrests must balance protection of victim with procedural fairness.",
+    "source_name": "Supreme Court of India",
+    "source_type": "official_court_source",
+    "source_url": "https://www.sci.gov.in/",
+    "verification_status": "verified"
   }
 ]

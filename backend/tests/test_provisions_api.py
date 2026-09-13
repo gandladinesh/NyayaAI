@@ -13,9 +13,9 @@ def test_get_all_provisions():
 
     data = response.json()
 
-    # Total corpus: 25 Constitution + 16 Phase 2 (8 BNS, 4 BNSS, 4 BSA)
-    assert data["count"] == 41
-    assert len(data["provisions"]) == 41
+    # Total corpus: 25 Constitution + 12 BNS + 8 BNSS + 5 BSA = 50
+    assert data["count"] == 50
+    assert len(data["provisions"]) == 50
 
 
 def test_get_provisions_by_category():
@@ -27,17 +27,17 @@ def test_get_provisions_by_category():
     # BNS filter
     res_bns = client.get("/api/provisions", params={"category": "bns"})
     assert res_bns.status_code == 200
-    assert res_bns.json()["count"] == 8
+    assert res_bns.json()["count"] == 12
 
     # BNSS filter
     res_bnss = client.get("/api/provisions", params={"category": "bnss"})
     assert res_bnss.status_code == 200
-    assert res_bnss.json()["count"] == 4
+    assert res_bnss.json()["count"] == 8
 
     # BSA filter
     res_bsa = client.get("/api/provisions", params={"category": "bsa"})
     assert res_bsa.status_code == 200
-    assert res_bsa.json()["count"] == 4
+    assert res_bsa.json()["count"] == 5
 
 
 def test_get_article_21_by_reference():
@@ -117,3 +117,35 @@ def test_search_theft_finds_bns_provisions():
     assert data["count"] >= 2
     provision_ids = [p["provision_id"] for p in data["provisions"]]
     assert "bns-2023-section-303" in provision_ids
+
+
+def test_get_bns_section_85_cruelty():
+    response = client.get("/api/provisions/reference/Section 85")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["provision_id"] == "bns-2023-section-85"
+    assert "cruelty" in data["short_title"].lower()
+
+
+def test_get_bnss_section_482_anticipatory_bail():
+    response = client.get("/api/provisions/reference/Section 482")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["provision_id"] == "bnss-2023-section-482"
+    assert "bail" in data["short_title"].lower()
+
+
+def test_get_bnss_section_126_maintenance():
+    response = client.get("/api/provisions/reference/Section 126")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["provision_id"] == "bnss-2023-section-126"
+    assert "maintenance" in data["short_title"].lower()
+
+
+def test_get_bsa_section_24_confession():
+    response = client.get("/api/provisions/reference/Section 24")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["provision_id"] == "bsa-2023-section-24"
+    assert "confession" in data["short_title"].lower()
