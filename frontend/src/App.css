@@ -908,6 +908,21 @@ footer p {
   font-size: 12px;
 }
 
+.procedure-fallback-notice {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  padding: 14px;
+  margin: 16px 0;
+  font-size: 13px;
+  color: #0369a1;
+  line-height: 1.5;
+}
+
+.procedure-fallback-notice p {
+  margin: 0;
+}
+
 /* ── Legal Evidence Card Styles ─────────────────────────────────────────── */
 
 .legal-evidence-card {

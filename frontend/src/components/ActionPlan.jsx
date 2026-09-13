@@ -1,34 +1,60 @@
+// Helper function to safely parse JSON with validation
+function safeParseJSON(jsonStr, fieldName = "data") {
+  if (!jsonStr) return [];
+  
+  try {
+    const parsed = typeof jsonStr === "string" ? JSON.parse(jsonStr) : jsonStr;
+    // Ensure parsed result is an array
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.warn(`Failed to parse ${fieldName}:`, e);
+    return [];
+  }
+}
+
+// Helper to validate step object structure
+function isValidStep(step) {
+  return (
+    step &&
+    typeof step === "object" &&
+    (typeof step.instruction === "string" || typeof step.step === "number")
+  );
+}
+
+// Helper to validate document is a string
+function isValidDoc(doc) {
+  return typeof doc === "string" && doc.trim().length > 0;
+}
+
 export default function ActionPlan({
   actionPlanSteps = [],
   complaintProcedure,
   escalationAuthority,
   sourceNote,
 }) {
-  if (!actionPlanSteps.length && !complaintProcedure) return null;
-
-  // Parse procedure steps if stored as JSON string
+  // Validate actionPlanSteps is an array
+  const validSteps = Array.isArray(actionPlanSteps) ? actionPlanSteps : [];
+  
+  // Safe parse procedure steps with validation
   let parsedSteps = [];
   if (complaintProcedure?.procedure_steps_json) {
-    try {
-      parsedSteps = typeof complaintProcedure.procedure_steps_json === "string"
-        ? JSON.parse(complaintProcedure.procedure_steps_json)
-        : complaintProcedure.procedure_steps_json;
-    } catch (e) {
-      console.error("Error parsing procedure_steps_json:", e);
-    }
+    parsedSteps = safeParseJSON(
+      complaintProcedure.procedure_steps_json,
+      "procedure_steps_json"
+    ).filter(isValidStep);
   }
 
-  // Parse required documents if stored as JSON string
+  // Safe parse required documents with validation
   let parsedDocs = [];
   if (complaintProcedure?.required_docs_json) {
-    try {
-      parsedDocs = typeof complaintProcedure.required_docs_json === "string"
-        ? JSON.parse(complaintProcedure.required_docs_json)
-        : complaintProcedure.required_docs_json;
-    } catch (e) {
-      console.error("Error parsing required_docs_json:", e);
-    }
+    parsedDocs = safeParseJSON(
+      complaintProcedure.required_docs_json,
+      "required_docs_json"
+    ).filter(isValidDoc);
   }
+
+  // Early exit if no valid data to display
+  if (!validSteps.length && !complaintProcedure) return null;
 
   return (
     <div className="result-card action-plan-card">
@@ -40,9 +66,9 @@ export default function ActionPlan({
       <h2 className="action-plan-title">Step-by-Step Action Roadmap</h2>
 
       {/* Ordered Action Steps */}
-      {actionPlanSteps.length > 0 && (
+      {validSteps.length > 0 && (
         <div className="action-steps-timeline">
-          {actionPlanSteps.map((stepText, index) => (
+          {validSteps.map((stepText, index) => (
             <div key={index} className="action-step-item">
               <div className="step-circle">{index + 1}</div>
               <div className="step-content">
@@ -86,6 +112,16 @@ export default function ActionPlan({
             )}
           </div>
 
+          {/* Show fallback message if no procedure data available */}
+          {parsedSteps.length === 0 && parsedDocs.length === 0 && (
+            <div className="procedure-fallback-notice">
+              <p>
+                Detailed filing instructions and required documents for this complaint procedure are not yet available. 
+                Please contact the authority directly or visit their official website for complete information.
+              </p>
+            </div>
+          )}
+
           {/* Procedure Steps List */}
           {parsedSteps.length > 0 && (
             <div className="procedure-steps-list">
@@ -93,7 +129,8 @@ export default function ActionPlan({
               <ol className="instructions-ol">
                 {parsedSteps.map((s, idx) => (
                   <li key={idx} className="instruction-li">
-                    <strong>Step {s.step || idx + 1}:</strong> {s.instruction}
+                    <strong>Step {typeof s.step === "number" ? s.step : idx + 1}:</strong>{" "}
+                    {s.instruction || s.text || "(no instruction provided)"}
                     {s.notes && <p className="step-subnote">{s.notes}</p>}
                   </li>
                 ))}
