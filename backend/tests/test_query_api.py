@@ -634,3 +634,110 @@ def test_query_with_bns_category_filter():
     data = response.json()
     assert data["status"] == "success"
     assert "bns" in data["primary_result"]["provision_id"]
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Phase 3 Task 3: Multilingual Explanation Language Tests
+# ─────────────────────────────────────────────────────────────────────────
+
+def test_query_default_language_is_english():
+    """Default language should be 'en' and be echoed in the response."""
+    response = client.post(
+        "/api/query",
+        json={"question": "What is the right to life?"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    # language field must be present in response
+    assert "language" in data
+    assert data["language"] == "en"
+
+
+def test_query_explicit_english_language():
+    """Explicit language='en' should be accepted and echoed."""
+    response = client.post(
+        "/api/query",
+        json={"question": "What is the right to life?", "language": "en"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["language"] == "en"
+
+
+def test_query_hindi_language_accepted():
+    """language='hi' (Hindi) should be accepted (HTTP 200)."""
+    response = client.post(
+        "/api/query",
+        json={"question": "What is bail?", "language": "hi"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["language"] == "hi"
+    # ai_explanation must be present (corpus fallback since no API key in tests)
+    assert "ai_explanation" in data["primary_result"]
+    assert len(data["primary_result"]["ai_explanation"]) > 0
+
+
+def test_query_telugu_language_accepted():
+    """language='te' (Telugu) should be accepted (HTTP 200)."""
+    response = client.post(
+        "/api/query",
+        json={"question": "What is the right to equality?", "language": "te"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["language"] == "te"
+
+
+def test_query_marathi_language_accepted():
+    """language='mr' (Marathi) should be accepted (HTTP 200)."""
+    response = client.post(
+        "/api/query",
+        json={"question": "What is anticipatory bail?", "language": "mr"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["language"] == "mr"
+
+
+def test_query_invalid_language_rejected():
+    """An unsupported language code should result in HTTP 422 Unprocessable Entity."""
+    response = client.post(
+        "/api/query",
+        json={"question": "What is bail?", "language": "xx"},
+    )
+    assert response.status_code == 422
+
+
+def test_query_exact_text_always_in_english():
+    """Exact statutory text is always verbatim English regardless of requested language."""
+    for lang in ("en", "hi", "te", "mr"):
+        response = client.post(
+            "/api/query",
+            json={"question": "What is the right to life?", "language": lang},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "success"
+        # exact_text must be non-empty (it's the English statutory text)
+        assert "exact_text" in data["primary_result"]
+        assert len(data["primary_result"]["exact_text"]) > 0
+        # The exact_text for Article 21 should contain well-known English statutory words
+        assert "life" in data["primary_result"]["exact_text"].lower()
+
+
+def test_query_language_field_always_echoed():
+    """The language field should always be echoed in the response regardless of result status."""
+    for lang in ("en", "hi", "te", "mr"):
+        response = client.post(
+            "/api/query",
+            json={"question": "What is anticipatory bail?", "language": lang},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        # language must always be present and correctly echoed
+        assert "language" in data, f"language field missing for language={lang}"
+        assert data["language"] == lang, f"Expected language={lang}, got {data['language']}"
+
+

@@ -17,6 +17,15 @@ from app.core.config import settings
 from app.models.legal_provision import LegalProvision
 
 
+# Human-readable language names for prompt clarity
+_LANGUAGE_NAMES: dict[str, str] = {
+    "en": "English",
+    "hi": "Hindi (हिन्दी)",
+    "te": "Telugu (తెలుగు)",
+    "mr": "Marathi (मराठी)",
+}
+
+
 class AIExplainer:
     """Generate plain-language explanations from verified legal material."""
 
@@ -32,18 +41,35 @@ class AIExplainer:
         self,
         question: str,
         provision: LegalProvision,
+        language: str = "en",
     ) -> str:
         """
         Generate a simple explanation of a verified provision.
 
-        If Gemini is not configured, return the curated explanation
-        already stored with the verified provision.
+        Args:
+            question: The citizen's legal question.
+            provision: The verified legal provision to explain.
+            language: ISO 639-1 code for the explanation language.
+                      Supported: 'en', 'hi', 'te', 'mr'.
+                      Defaults to 'en' (English).
+
+        If Gemini is not configured, returns the curated English explanation
+        already stored with the verified provision, regardless of language.
+
+        The exact statutory text is NEVER altered, translated, or AI-generated.
         """
 
         if not settings.has_gemini or self.client is None:
             return provision.ai_explanation or (
                 "An AI explanation is not currently available."
             )
+
+        language_name = _LANGUAGE_NAMES.get(language, "English")
+        language_instruction = (
+            f"Respond ONLY in {language_name}."
+            if language != "en"
+            else "Respond in clear, simple English."
+        )
 
         prompt = f"""
 You are NyayaAI, an Indian legal information assistant.
@@ -60,6 +86,8 @@ IMPORTANT RULES:
 6. Do not provide a definitive legal opinion.
 7. If the question cannot be answered from the supplied provision,
    say so instead of guessing.
+8. {language_instruction}
+9. Keep the explanation concise (3-5 sentences).
 
 User question:
 {question}
@@ -84,4 +112,4 @@ Provide a concise explanation in simple language.
                 or "An AI explanation is not currently available."
             )
 
-        return response.text.strip()
+        return response.text.strip()

@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Optional
 
 from fastapi import APIRouter
@@ -5,6 +6,19 @@ from pydantic import BaseModel, Field
 
 from app.models.legal_provision import ProvisionCategory
 from app.services.legal_query_service import LegalQueryService
+
+
+class ExplanationLanguage(str, Enum):
+    """Supported languages for AI-generated plain-language explanations.
+
+    The exact statutory legal text is always returned in English
+    (the authoritative language of the enactment).
+    Only AI explanations are rendered in the requested language.
+    """
+    ENGLISH  = "en"
+    HINDI    = "hi"
+    TELUGU   = "te"
+    MARATHI  = "mr"
 
 
 class QueryRequest(BaseModel):
@@ -27,6 +41,14 @@ class QueryRequest(BaseModel):
         ge=1,
         le=5,
         description="Number of top legal provisions to retrieve and explain (1-5)"
+    )
+    language: ExplanationLanguage = Field(
+        default=ExplanationLanguage.ENGLISH,
+        description=(
+            "Language for AI-generated plain-language explanation. "
+            "Supported: 'en' (English), 'hi' (Hindi), 'te' (Telugu), 'mr' (Marathi). "
+            "The exact statutory legal text is always in English regardless of this setting."
+        ),
     )
 
 
@@ -57,6 +79,12 @@ async def query_legal(request: QueryRequest):
     - `primary_result`: Main provision matching the query (if found)
     - `related_results`: Additional related provisions
     - `question`: Echoed query for confirmation
+    - `language`: Language used for AI explanations
+    
+    **Multilingual explanations:**
+    Set `language` to `'hi'` (Hindi), `'te'` (Telugu), or `'mr'` (Marathi) to receive
+    AI-generated plain-language explanations in that language.
+    The exact statutory legal text is always returned verbatim in English.
     
     **Note:** Exact legal text is NEVER AI-generated. AI explanations are clearly labeled.
     """
@@ -64,4 +92,5 @@ async def query_legal(request: QueryRequest):
         question=request.question,
         category=request.category,
         top_k=request.top_k,
-    )
+        language=request.language.value,
+    )

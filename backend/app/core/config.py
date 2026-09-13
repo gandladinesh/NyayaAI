@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     # ── App ───────────────────────────────────────────────────────────────────
     app_title: str = "NyayaAI Legal Assistant"
-    app_version: str = "1.0.0-phase1"
+    app_version: str = "1.0.0-phase3"
     debug: bool = False
     host: str = "0.0.0.0"
     port: int = 8000

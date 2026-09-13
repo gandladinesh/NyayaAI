@@ -31,8 +31,17 @@ class LegalQueryService:
         question: str,
         category: ProvisionCategory | None = None,
         top_k: int = 3,
+        language: str = "en",
     ) -> dict:
-        """Retrieve verified legal material and generate an explanation."""
+        """Retrieve verified legal material and generate an explanation.
+
+        Args:
+            question: The legal question from the citizen.
+            category: Optional Act/category filter.
+            top_k: Maximum number of provisions to retrieve.
+            language: ISO 639-1 code for explanation language ('en', 'hi', 'te', 'mr').
+                      The exact statutory text is always returned verbatim in English.
+        """
 
         question = question.strip()
 
@@ -42,6 +51,7 @@ class LegalQueryService:
                 "message": "Please enter a legal question.",
                 "primary_result": None,
                 "related_results": [],
+                "language": language,
             }
 
         # Hybrid retrieval: Check if query contains an exact or direct reference
@@ -84,6 +94,7 @@ class LegalQueryService:
                 ),
                 "primary_result": None,
                 "related_results": [],
+                "language": language,
             }
 
         def format_result(result: dict) -> dict:
@@ -96,6 +107,7 @@ class LegalQueryService:
             explanation = self.explainer.explain(
                 question=question,
                 provision=provision,
+                language=language,
             )
 
             return {
@@ -139,4 +151,5 @@ class LegalQueryService:
             "question": question,
             "primary_result": primary_result,
             "related_results": related_results,
-        }
+            "language": language,
+        }
