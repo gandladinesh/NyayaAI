@@ -149,3 +149,46 @@ def test_get_bsa_section_24_confession():
     data = response.json()
     assert data["provision_id"] == "bsa-2023-section-24"
     assert "confession" in data["short_title"].lower()
+
+
+def test_ambiguous_reference_returns_404_without_category():
+    # "Section 2" exists in both BNSS and BSA; without category filter it should be safely rejected
+    response = client.get("/api/provisions/reference/Section 2")
+    assert response.status_code == 404
+
+
+def test_disambiguated_references_with_category_or_act():
+    # Disambiguating via query parameter
+    res_bnss = client.get("/api/provisions/reference/Section 2?category=bnss")
+    assert res_bnss.status_code == 200
+    assert res_bnss.json()["provision_id"] == "bnss-2023-section-2"
+
+    res_bsa = client.get("/api/provisions/reference/Section 2?category=bsa")
+    assert res_bsa.status_code == 200
+    assert res_bsa.json()["provision_id"] == "bsa-2023-section-2"
+
+    # Disambiguating via embedded act name in reference path
+    res_embedded = client.get("/api/provisions/reference/BNSS Section 2")
+    assert res_embedded.status_code == 200
+    assert res_embedded.json()["provision_id"] == "bnss-2023-section-2"
+
+
+def test_predecessor_reference_mapping():
+    # IPC 420 -> BNS Section 318
+    res_ipc = client.get("/api/provisions/reference/IPC 420")
+    assert res_ipc.status_code == 200
+    assert res_ipc.json()["provision_id"] == "bns-2023-section-318"
+
+    # CrPC 438 -> BNSS Section 482
+    res_crpc = client.get("/api/provisions/reference/CrPC 438")
+    assert res_crpc.status_code == 200
+    assert res_crpc.json()["provision_id"] == "bnss-2023-section-482"
+
+
+def test_multi_token_ranked_search():
+    # Multi-token search for anticipatory bail should rank BNSS Section 482 first
+    response = client.get("/api/provisions", params={"search": "anticipatory bail"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["count"] >= 1
+    assert data["provisions"][0]["provision_id"] == "bnss-2023-section-482"

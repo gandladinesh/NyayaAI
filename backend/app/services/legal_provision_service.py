@@ -68,34 +68,110 @@ class LegalProvisionService:
         reference_number: str,
         category: Optional[ProvisionCategory] = None,
     ) -> Optional[LegalProvision]:
-        """Return a provision by Article/Section reference number or official citation."""
-        reference = reference_number.strip().lower()
+        """Return a provision by Article/Section reference number or official citation.
+
+        Supports:
+        - Exact reference number ('Article 21', 'Section 100')
+        - Embedded Act names ('BNSS Section 2', 'Section 2 of BSA', 'BNS 100')
+        - Official citation ('BNS 2023, s. 100', 'Act 45 of 2023, s. 100')
+        - Predecessor statutory cross-references via version notes (e.g., 'IPC 420' -> BNS 318, 'CrPC 438' -> BNSS 482)
+        - Safe disambiguation: if an ambiguous query like 'Section 2' matches multiple provisions across acts and no act/category is specified, returns None rather than an arbitrary match.
+        """
+        raw_ref = reference_number.strip()
+        ref_lower = raw_ref.lower()
+
+        # Check if the query itself specifies an Act/category
+        detected_category = category
+        if detected_category is None:
+            if "bnss" in ref_lower or "nagarik" in ref_lower:
+                detected_category = ProvisionCategory.BNSS
+            elif "bsa" in ref_lower or "sakshya" in ref_lower:
+                detected_category = ProvisionCategory.BSA
+            elif "bns" in ref_lower or "nyaya sanhita" in ref_lower:
+                detected_category = ProvisionCategory.BNS
+            elif "constitution" in ref_lower or "article" in ref_lower:
+                detected_category = ProvisionCategory.CONSTITUTION
+
+        # Extract numeric/alphanumeric section/article part if prefixed with act name
+        # e.g., "BNSS Section 2" -> clean reference to "Section 2"
+        clean_ref = ref_lower
+        for act_term in ["bnss", "bns", "bsa", "constitution of india", "constitution"]:
+            clean_ref = clean_ref.replace(act_term, "").strip()
+        clean_ref = clean_ref.replace("of", "").strip()
 
         # 1. Exact match on reference_number
+        exact_matches: list[LegalProvision] = []
         for provision in self._provisions:
-            if category is not None and provision.category != category:
-                continue
-            if provision.reference_number.lower() == reference:
-                return provision
-
-        # 2. Match on official_citation or citation (e.g. "BNS 2023, s. 100")
-        for provision in self._provisions:
-            if category is not None and provision.category != category:
-                continue
-            if provision.official_citation.lower() == reference:
-                return provision
-            if provision.citation and provision.citation.lower() == reference:
-                return provision
-
-        # 3. Flexible match (e.g. "Section 2" with category filter, or containment)
-        for provision in self._provisions:
-            if category is not None and provision.category != category:
+            if detected_category is not None and provision.category != detected_category:
                 continue
             prov_ref = provision.reference_number.lower()
-            if reference in prov_ref or prov_ref in reference:
+            if prov_ref == ref_lower or prov_ref == clean_ref:
+                exact_matches.append(provision)
+
+        if len(exact_matches) == 1:
+            return exact_matches[0]
+        elif len(exact_matches) > 1:
+            # Ambiguous match across different acts without category filter
+            return None
+
+        # 2. Match on official_citation, citation, or provision_id
+        for provision in self._provisions:
+            if detected_category is not None and provision.category != detected_category:
+                continue
+            if provision.official_citation.lower() == ref_lower:
+                return provision
+            if provision.citation and provision.citation.lower() == ref_lower:
+                return provision
+            if provision.provision_id.lower() == ref_lower:
                 return provision
 
+        # 3. Match on predecessor law references (e.g. IPC, CrPC, IEA in version_note)
+        # e.g. citizen searches for "IPC 420", "CrPC 438", "CrPC 125"
+        # Only attempt when query contains a recognised predecessor act abbreviation.
+        _PREDECESSOR_ACTS = {"ipc", "crpc", "iea", "cpc", "itp"}
+        predecessor_matches: list[LegalProvision] = []
+        ref_tokens = [t.strip(",.()[]") for t in ref_lower.split()]
+        has_predecessor_keyword = any(tok in _PREDECESSOR_ACTS for tok in ref_tokens)
+        num_tokens = [t for t in ref_tokens if any(c.isdigit() for c in t)]
+
+        if has_predecessor_keyword and num_tokens and detected_category is None:
+            import re as _re
+            for provision in self._provisions:
+                if provision.version_note:
+                    vn_lower = provision.version_note.lower()
+                    # Ensure each numeric token appears as a standalone word in version_note
+                    if all(
+                        bool(_re.search(r'\b' + _re.escape(num) + r'\b', vn_lower))
+                        for num in num_tokens
+                    ):
+                        predecessor_matches.append(provision)
+
+        if len(predecessor_matches) == 1:
+            return predecessor_matches[0]
+
+        # 4. Token-boundary containment match
+        # Split clean_ref into tokens and verify each appears as a whole word in the provision reference.
+        # This prevents "section 2" matching "section 24" (substring false positive).
+        containment_matches: list[LegalProvision] = []
+        if clean_ref:
+            import re as _re
+            query_tokens = clean_ref.split()
+            for provision in self._provisions:
+                if detected_category is not None and provision.category != detected_category:
+                    continue
+                prov_ref = provision.reference_number.lower()
+                # All tokens must appear as whole words in prov_ref
+                if all(
+                    bool(_re.search(r'\b' + _re.escape(tok) + r'\b', prov_ref))
+                    for tok in query_tokens
+                ):
+                    containment_matches.append(provision)
+
+        if len(containment_matches) == 1:
+            return containment_matches[0]
+
         return None
+
 
     def search(
         self,
@@ -103,32 +179,82 @@ class LegalProvisionService:
         category: Optional[ProvisionCategory] = None,
     ) -> list[LegalProvision]:
         """
-        Simple Phase-1 keyword search.
+        Multi-token ranked keyword search across verified legal provisions.
 
-        RAG/semantic retrieval will be added separately in the next phase.
+        Scores results based on:
+        - Reference number matches (highest weight)
+        - Short title and title matches (high weight)
+        - Version note / predecessor matches (medium weight)
+        - Exact text and AI explanation matches (standard weight)
         """
-        query = query.strip().lower()
+        query_clean = query.strip().lower()
 
-        if not query:
+        if not query_clean:
             return []
 
-        results: list[LegalProvision] = []
+        tokens = [t for t in query_clean.split() if len(t) > 1]
+        if not tokens:
+            tokens = [query_clean]
+
+        scored_results: list[tuple[float, LegalProvision]] = []
 
         for provision in self._provisions:
-            searchable_text = " ".join(
-                [
-                    provision.reference_number,
-                    provision.short_title,
-                    provision.title or "",
-                    provision.act,
-                    provision.act_short,
-                    provision.exact_text,
-                    provision.ai_explanation or "",
-                ]
-            ).lower()
+            if category is not None and provision.category != category:
+                continue
 
-            if query in searchable_text:
-                if category is None or provision.category == category:
-                    results.append(provision)
+            ref_text = provision.reference_number.lower()
+            title_text = f"{provision.short_title} {provision.title or ''}".lower()
+            act_text = f"{provision.act} {provision.act_short}".lower()
+            version_text = (provision.version_note or "").lower()
+            body_text = f"{provision.exact_text} {provision.ai_explanation or ''}".lower()
 
-        return results
+            score = 0.0
+
+            # Exact full phrase matches
+            if query_clean in ref_text:
+                score += 100.0
+            if query_clean in title_text:
+                score += 50.0
+            if query_clean in version_text:
+                score += 30.0
+            if query_clean in body_text:
+                score += 20.0
+            if query_clean in act_text:
+                score += 10.0
+
+            # Token overlap scoring
+            matched_tokens = 0
+            for token in tokens:
+                token_matched = False
+                if token in ref_text:
+                    score += 25.0
+                    token_matched = True
+                if token in title_text:
+                    score += 15.0
+                    token_matched = True
+                if token in version_text:
+                    score += 8.0
+                    token_matched = True
+                if token in body_text:
+                    score += 4.0
+                    token_matched = True
+
+                if token_matched:
+                    matched_tokens += 1
+
+            # Match criteria: full phrase matched OR all tokens matched OR at least 2 tokens matched for multi-token
+            is_match = (
+                score >= 20.0
+                and (
+                    query_clean in f"{ref_text} {title_text} {act_text} {version_text} {body_text}"
+                    or matched_tokens == len(tokens)
+                    or (len(tokens) > 2 and matched_tokens >= len(tokens) * 0.6)
+                )
+            )
+
+            if is_match:
+                scored_results.append((score, provision))
+
+        # Sort descending by relevance score
+        scored_results.sort(key=lambda item: item[0], reverse=True)
+        return [provision for _, provision in scored_results]

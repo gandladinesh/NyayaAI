@@ -44,11 +44,36 @@ class LegalQueryService:
                 "related_results": [],
             }
 
+        # Hybrid retrieval: Check if query contains an exact or direct reference
+        exact_match = self.rag.legal_service.get_by_reference(
+            reference_number=question,
+            category=category,
+        )
+
         results = self.rag.search(
             query=question,
             category=category,
             top_k=top_k,
         )
+
+        # If an exact statutory provision was identified, guarantee it appears first
+        if exact_match is not None:
+            existing_ids = [r["provision"].provision_id for r in results]
+            if exact_match.provision_id in existing_ids:
+                # Move to front with zero distance
+                idx = existing_ids.index(exact_match.provision_id)
+                exact_entry = results.pop(idx)
+                exact_entry["distance"] = 0.0
+                results.insert(0, exact_entry)
+            else:
+                results.insert(
+                    0,
+                    {
+                        "provision": exact_match,
+                        "distance": 0.0,
+                    },
+                )
+            results = results[:top_k]
 
         if not results:
             return {
