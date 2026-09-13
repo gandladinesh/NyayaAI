@@ -11,8 +11,9 @@ const SAMPLE_QUESTIONS = [
   { label: "Right to Life (Art. 21)", query: "What is the right to life under Article 21?" },
   { label: "Equality Before Law (Art. 14)", query: "What does equality before the law mean under Article 14?" },
   { label: "Freedom of Speech (Art. 19)", query: "What are the six freedoms guaranteed under Article 19?" },
-  { label: "Free Legal Aid (Art. 39A)", query: "How does the Constitution guarantee free legal aid?" },
-  { label: "Protection from Arrest (Art. 22)", query: "What rights does a person have against arbitrary arrest?" },
+  { label: "Filing an FIR (BNSS s. 173)", query: "What are the rules for First Information Report under Bharatiya Nagarik Suraksha Sanhita?" },
+  { label: "Theft Offence (BNS s. 303)", query: "What is the legal definition and punishment for theft under BNS?" },
+  { label: "Electronic Evidence (BSA s. 65)", query: "What are the requirements for admissibility of electronic records as evidence under BSA?" },
 ];
 
 const PROBLEM_CATEGORIES = [

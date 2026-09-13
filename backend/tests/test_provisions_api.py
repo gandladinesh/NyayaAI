@@ -13,8 +13,31 @@ def test_get_all_provisions():
 
     data = response.json()
 
-    assert data["count"] == 25
-    assert len(data["provisions"]) == 25
+    # Total corpus: 25 Constitution + 16 Phase 2 (8 BNS, 4 BNSS, 4 BSA)
+    assert data["count"] == 41
+    assert len(data["provisions"]) == 41
+
+
+def test_get_provisions_by_category():
+    # Constitution filter
+    res_const = client.get("/api/provisions", params={"category": "constitution"})
+    assert res_const.status_code == 200
+    assert res_const.json()["count"] == 25
+
+    # BNS filter
+    res_bns = client.get("/api/provisions", params={"category": "bns"})
+    assert res_bns.status_code == 200
+    assert res_bns.json()["count"] == 8
+
+    # BNSS filter
+    res_bnss = client.get("/api/provisions", params={"category": "bnss"})
+    assert res_bnss.status_code == 200
+    assert res_bnss.json()["count"] == 4
+
+    # BSA filter
+    res_bsa = client.get("/api/provisions", params={"category": "bsa"})
+    assert res_bsa.status_code == 200
+    assert res_bsa.json()["count"] == 4
 
 
 def test_get_article_21_by_reference():
@@ -60,3 +83,37 @@ def test_unknown_provision_returns_404():
         "Legal provision "
         "'constitution-india-article-999' not found."
     )
+
+
+def test_get_bns_section_100_by_reference():
+    response = client.get("/api/provisions/reference/Section 100")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["provision_id"] == "bns-2023-section-100"
+    assert data["act_short"] == "BNS 2023"
+    assert "murder" in data["short_title"].lower()
+
+
+def test_get_bnss_section_173_by_reference():
+    response = client.get("/api/provisions/reference/Section 173")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["provision_id"] == "bnss-2023-section-173"
+    assert data["act_short"] == "BNSS 2023"
+
+
+def test_get_bsa_section_65_by_reference():
+    response = client.get("/api/provisions/reference/Section 65")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["provision_id"] == "bsa-2023-section-65"
+    assert data["act_short"] == "BSA 2023"
+
+
+def test_search_theft_finds_bns_provisions():
+    response = client.get("/api/provisions", params={"search": "theft"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["count"] >= 2
+    provision_ids = [p["provision_id"] for p in data["provisions"]]
+    assert "bns-2023-section-303" in provision_ids

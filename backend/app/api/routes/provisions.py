@@ -2,6 +2,7 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
+from app.models.legal_provision import ProvisionCategory
 from app.services.legal_provision_service import LegalProvisionService
 
 
@@ -17,14 +18,18 @@ service = LegalProvisionService()
     "",
     summary="Browse legal provisions or search with keywords",
     responses={
-        200: {"description": "List of legal provisions (optionally filtered by search query)"},
+        200: {"description": "List of legal provisions (optionally filtered by search query and category)"},
         400: {"description": "Invalid search query"},
     }
 )
 async def get_provisions(
     search: Optional[str] = Query(
         default=None,
-        description="Optional keyword search (e.g., 'right to life', 'bail', 'arrest'). Performs keyword-based lookup across provision titles and text.",
+        description="Optional keyword search (e.g., 'right to life', 'bail', 'arrest', 'theft'). Performs keyword-based lookup across provision titles and text.",
+    ),
+    category: Optional[ProvisionCategory] = Query(
+        default=None,
+        description="Optional category filter (e.g., 'constitution', 'bns', 'bnss', 'bsa')",
     ),
 ):
     """Browse verified legal provisions or search by keyword.
@@ -45,7 +50,9 @@ async def get_provisions(
     For semantic search with AI explanations, use the /api/query endpoint instead.
     """
     if search:
-        provisions = service.search(search)
+        provisions = service.search(search, category=category)
+    elif category:
+        provisions = [p for p in service.get_all() if p.category == category]
     else:
         provisions = service.get_all()
 
@@ -89,10 +96,23 @@ async def get_provision(provision_id: str):
     return provision
 
 
-@router.get("/reference/{reference_number}")
-async def get_provision_by_reference(reference_number: str):
-    """Return a provision by Article/Section reference number."""
-    provision = service.get_by_reference(reference_number)
+@router.get(
+    "/reference/{reference_number}",
+    summary="Get legal provision by reference number or citation",
+    responses={
+        200: {"description": "Legal provision matching reference number or citation"},
+        404: {"description": "Provision reference not found"},
+    }
+)
+async def get_provision_by_reference(
+    reference_number: str,
+    category: Optional[ProvisionCategory] = Query(
+        default=None,
+        description="Optional category filter to disambiguate across Acts (e.g. 'bnss', 'bsa')",
+    ),
+):
+    """Return a provision by Article/Section reference number or official citation."""
+    provision = service.get_by_reference(reference_number, category=category)
 
     if provision is None:
         raise HTTPException(

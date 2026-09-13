@@ -575,3 +575,62 @@ def test_query_question_with_numbers():
     assert response.status_code == 200
     data = response.json()
     assert data["status"] in ["success", "no_relevant_provision"]
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Phase 2: BNS, BNSS, and BSA Queries
+# ─────────────────────────────────────────────────────────────────────────
+
+def test_query_bns_theft():
+    """Query about theft should retrieve BNS theft provisions."""
+    response = client.post(
+        "/api/query",
+        json={"question": "What is the definition and punishment for theft under BNS?", "top_k": 3},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["primary_result"] is not None
+    assert "303" in data["primary_result"]["reference_number"] or "304" in data["primary_result"]["reference_number"] or "BNS" in data["primary_result"]["act"]
+
+
+def test_query_bnss_fir():
+    """Query about First Information Report should retrieve BNSS Section 173."""
+    response = client.post(
+        "/api/query",
+        json={"question": "What are the rules for First Information Report under Bharatiya Nagarik Suraksha Sanhita?", "top_k": 3},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["primary_result"] is not None
+    assert "173" in data["primary_result"]["reference_number"] or "BNSS" in data["primary_result"]["act"]
+
+
+def test_query_bsa_electronic_evidence():
+    """Query about electronic evidence should retrieve BSA Section 65."""
+    response = client.post(
+        "/api/query",
+        json={"question": "What are the requirements for admissibility of electronic records as evidence under BSA?", "top_k": 3},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["primary_result"] is not None
+    assert "65" in data["primary_result"]["reference_number"] or "BSA" in data["primary_result"]["act"]
+
+
+def test_query_with_bns_category_filter():
+    """Query with category='bns' should only return BNS provisions."""
+    response = client.post(
+        "/api/query",
+        json={"question": "What is criminal intimidation?", "category": "bns", "top_k": 3},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert "bns" in data["primary_result"]["provision_id"]

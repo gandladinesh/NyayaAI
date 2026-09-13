@@ -28,5 +28,66 @@
     "source_type": "official_court_source",
     "source_url": "https://www.sci.gov.in/",
     "verification_status": "verified"
+  },
+  {
+    "case_id": "lalita-kumari-v-govt-of-up-2014",
+    "case_name": "Lalita Kumari v. Government of U.P.",
+    "citation": "(2014) 2 SCC 1",
+    "court": "Supreme Court of India",
+    "judgment_date": "2013-11-12",
+    "provision_ids": [
+      "bnss-2023-section-173"
+    ],
+    "legal_principle": "Registration of FIR is mandatory if the information discloses the commission of a cognizable offence, and no preliminary inquiry is permissible in such cases.",
+    "source_name": "Supreme Court of India",
+    "source_type": "official_court_source",
+    "source_url": "https://www.sci.gov.in/",
+    "verification_status": "verified"
+  },
+  {
+    "case_id": "arnesh-kumar-v-state-of-bihar-2014",
+    "case_name": "Arnesh Kumar v. State of Bihar",
+    "citation": "(2014) 8 SCC 273",
+    "court": "Supreme Court of India",
+    "judgment_date": "2014-07-02",
+    "provision_ids": [
+      "bnss-2023-section-35"
+    ],
+    "legal_principle": "Arrest should not be made routinely or merely because an offence is cognizable. Police officers must satisfy themselves about the necessity for arrest using objective criteria.",
+    "source_name": "Supreme Court of India",
+    "source_type": "official_court_source",
+    "source_url": "https://www.sci.gov.in/",
+    "verification_status": "verified"
+  },
+  {
+    "case_id": "arjun-panditrao-khotkar-v-kailash-kushanrao-gorantyal-2020",
+    "case_name": "Arjun Panditrao Khotkar v. Kailash Kushanrao Gorantyal",
+    "citation": "(2020) 7 SCC 1",
+    "court": "Supreme Court of India",
+    "judgment_date": "2020-07-14",
+    "provision_ids": [
+      "bsa-2023-section-65"
+    ],
+    "legal_principle": "Production of an electronic record certificate is mandatory for admitting secondary evidence of electronic records in court proceedings.",
+    "source_name": "Supreme Court of India",
+    "source_type": "official_court_source",
+    "source_url": "https://www.sci.gov.in/",
+    "verification_status": "verified"
+  },
+  {
+    "case_id": "bachan-singh-v-state-of-punjab-1980",
+    "case_name": "Bachan Singh v. State of Punjab",
+    "citation": "(1980) 2 SCC 684",
+    "court": "Supreme Court of India",
+    "judgment_date": "1980-05-09",
+    "provision_ids": [
+      "bns-2023-section-100",
+      "bns-2023-section-103"
+    ],
+    "legal_principle": "The extreme penalty of death for murder should only be imposed in the 'rarest of rare cases' when the alternative option of life imprisonment is unquestionably foreclosed.",
+    "source_name": "Supreme Court of India",
+    "source_type": "official_court_source",
+    "source_url": "https://www.sci.gov.in/",
+    "verification_status": "verified"
   }
 ]

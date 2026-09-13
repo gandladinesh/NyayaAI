@@ -66,12 +66,33 @@ class LegalProvisionService:
     def get_by_reference(
         self,
         reference_number: str,
+        category: Optional[ProvisionCategory] = None,
     ) -> Optional[LegalProvision]:
-        """Return a provision by Article/Section reference."""
+        """Return a provision by Article/Section reference number or official citation."""
         reference = reference_number.strip().lower()
 
+        # 1. Exact match on reference_number
         for provision in self._provisions:
+            if category is not None and provision.category != category:
+                continue
             if provision.reference_number.lower() == reference:
+                return provision
+
+        # 2. Match on official_citation or citation (e.g. "BNS 2023, s. 100")
+        for provision in self._provisions:
+            if category is not None and provision.category != category:
+                continue
+            if provision.official_citation.lower() == reference:
+                return provision
+            if provision.citation and provision.citation.lower() == reference:
+                return provision
+
+        # 3. Flexible match (e.g. "Section 2" with category filter, or containment)
+        for provision in self._provisions:
+            if category is not None and provision.category != category:
+                continue
+            prov_ref = provision.reference_number.lower()
+            if reference in prov_ref or prov_ref in reference:
                 return provision
 
         return None

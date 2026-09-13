@@ -5,7 +5,7 @@
 [![React](https://img.shields.io/badge/Frontend-React%2019-61DAFB.svg?logo=react&logoColor=black)](https://react.dev)
 [![Vite](https://img.shields.io/badge/Build-Vite-646CFF.svg?logo=vite&logoColor=white)](https://vitejs.dev)
 [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)](https://python.org)
-[![Tests](https://img.shields.io/badge/Tests-81%2F81%20Passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-90%2F90%20Passing-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)]()
 
 NyayaAI is an open-source civic technology platform designed to make Indian law and legal remedies accessible, understandable, and actionable for every citizen.
@@ -159,9 +159,9 @@ docker compose up --build
 
 ## 🧪 Testing & Verification
 
-NyayaAI includes a comprehensive test suite of **81 automated backend tests** validating:
-* Exact legal text verification and integrity
-* Semantic retrieval threshold enforcement
+NyayaAI includes a comprehensive test suite of **90 automated backend tests** validating:
+* Exact legal text verification and integrity across 41 statutory & constitutional provisions
+* Semantic retrieval threshold enforcement and category-filtered querying
 * Authority jurisdiction boundaries and hierarchy
 * Edge cases (empty inputs, out-of-scope queries, special characters, max lengths)
 * Pydantic v2 schemas and REST contracts
@@ -174,7 +174,7 @@ backend/venv/Scripts/python.exe -m pytest backend/tests -v
 
 Output:
 ```
-============================== 81 passed in ~25s ==============================
+============================== 90 passed in ~25s ==============================
 ```
 
 Frontend production build verification:
@@ -193,7 +193,7 @@ npm run build
 - [x] Phase 1 Action Mode with Jurisdiction Analysis & Step-by-Step Action Plan
 - [x] Legal Citation Export (Download & Clipboard Copy)
 - [x] Dockerization & Production Environment Templates
-- [ ] Phase 2 Legal Corpus Expansion: Bharatiya Nyaya Sanhita (BNS), BNSS, BSA
+- [x] Phase 2 Legal Corpus Expansion: Bharatiya Nyaya Sanhita (BNS), BNSS, BSA (41 verified provisions)
 - [ ] Multilingual Support (Hindi, Telugu, Marathi)
 - [ ] PostgreSQL + `pgvector` migration for enterprise deployments
 
