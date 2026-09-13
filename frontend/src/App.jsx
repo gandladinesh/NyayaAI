@@ -5,6 +5,15 @@ import AuthorityCard from "./components/AuthorityCard";
 import LegalEvidenceCard from "./components/LegalEvidenceCard";
 import ActionPlan from "./components/ActionPlan";
 import CitationActions from "./components/CitationActions";
+import { API_BASE_URL, API_ENDPOINTS } from "./config";
+
+const SAMPLE_QUESTIONS = [
+  { label: "Right to Life (Art. 21)", query: "What is the right to life under Article 21?" },
+  { label: "Equality Before Law (Art. 14)", query: "What does equality before the law mean under Article 14?" },
+  { label: "Freedom of Speech (Art. 19)", query: "What are the six freedoms guaranteed under Article 19?" },
+  { label: "Free Legal Aid (Art. 39A)", query: "How does the Constitution guarantee free legal aid?" },
+  { label: "Protection from Arrest (Art. 22)", query: "What rights does a person have against arbitrary arrest?" },
+];
 
 const PROBLEM_CATEGORIES = [
   {
@@ -59,7 +68,7 @@ function App() {
         return {
           title: "Unable to Connect",
           message:
-            "The legal information service is not responding. Please check that the backend server is running and accessible at http://127.0.0.1:8000.",
+            `The legal information service is not responding. Please check that the backend server is running and accessible at ${API_BASE_URL}.`,
         };
       case "api":
         return {
@@ -92,7 +101,7 @@ function App() {
     setAnswer(null);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/query", {
+      const response = await fetch(API_ENDPOINTS.query, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -149,7 +158,7 @@ function App() {
         legal_category: selectedCategory,
       });
 
-      const response = await fetch(`http://127.0.0.1:8000/api/route?${queryParams.toString()}`);
+      const response = await fetch(`${API_ENDPOINTS.route}?${queryParams.toString()}`);
       if (!response.ok) {
         setActionErrorType("api");
         setActionError(
@@ -164,7 +173,7 @@ function App() {
       console.error("Action Mode error:", err);
       setActionErrorType("network");
       setActionError(
-        "Unable to connect to the routing service. Please check that the backend server is running and accessible at http://127.0.0.1:8000."
+        `Unable to connect to the routing service. Please check that the backend server is running and accessible at ${API_BASE_URL}.`
       );
     } finally {
       setActionLoading(false);
@@ -224,24 +233,53 @@ function App() {
 
           {/* Mode 1: Information Mode Query Box */}
           {mode === "information" && (
-            <div className="query-box">
-              <textarea
-                value={question}
-                onChange={(event) => setQuestion(event.target.value)}
-                placeholder="Ask a legal question..."
-                rows="4"
-              />
+            <div className="query-section">
+              <div className="query-box">
+                <textarea
+                  value={question}
+                  onChange={(event) => setQuestion(event.target.value)}
+                  onKeyDown={(e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && question.trim() && !loading) {
+                      e.preventDefault();
+                      askNyayaAI();
+                    }
+                  }}
+                  placeholder="Ask a legal question (e.g., What is the right to life guaranteed under Article 21?)..."
+                  rows="4"
+                />
 
-              <div className="query-footer">
-                <span>Example: What is the right to life?</span>
+                <div className="query-footer">
+                  <span className="query-hint">Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to search</span>
 
-                <button
-                  type="button"
-                  onClick={askNyayaAI}
-                  disabled={!question.trim() || loading}
-                >
-                  {loading ? "Checking..." : "Ask NyayaAI →"}
-                </button>
+                  <button
+                    type="button"
+                    onClick={askNyayaAI}
+                    disabled={!question.trim() || loading}
+                  >
+                    {loading ? "Searching Verified Corpus..." : "Ask NyayaAI →"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="sample-queries-container">
+                <span className="sample-queries-label">Explore Key Constitutional Rights:</span>
+                <div className="sample-chips">
+                  {SAMPLE_QUESTIONS.map((item, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      className="sample-chip"
+                      onClick={() => {
+                        setQuestion(item.query);
+                        setError("");
+                        setErrorType("");
+                      }}
+                      disabled={loading}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}

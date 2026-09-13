@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from "../config";
 
 export default function LocationSelector({
   selectedState,
@@ -6,7 +7,7 @@ export default function LocationSelector({
   onStateChange,
   onDistrictChange,
   disabled = false,
-  apiBaseUrl = "http://127.0.0.1:8000/api",
+  apiBaseUrl = `${API_BASE_URL}/api`,
 }) {
   const [states, setStates] = useState([]);
   const [districts, setDistricts] = useState([]);
