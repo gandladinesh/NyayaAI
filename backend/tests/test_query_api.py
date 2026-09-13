@@ -741,3 +741,160 @@ def test_query_language_field_always_echoed():
         assert data["language"] == lang, f"Expected language={lang}, got {data['language']}"
 
 
+# ─────────────────────────────────────────────────────────────────────────
+# Phase 3 Task 4: Relevance Score and Confidence Level Tests
+# ─────────────────────────────────────────────────────────────────────────
+
+def test_primary_result_has_relevance_score():
+    """primary_result must contain relevance_score (0-100 integer)."""
+    response = client.post(
+        "/api/query",
+        json={"question": "What is the right to life?"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    result = data["primary_result"]
+    assert "relevance_score" in result
+    score = result["relevance_score"]
+    assert isinstance(score, int)
+    assert 0 <= score <= 100
+
+
+def test_primary_result_has_confidence_level():
+    """primary_result must contain confidence_level string."""
+    response = client.post(
+        "/api/query",
+        json={"question": "What is the right to life?"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    result = data["primary_result"]
+    assert "confidence_level" in result
+    assert result["confidence_level"] in ("high", "medium", "low")
+
+
+def test_related_results_have_relevance_score_and_confidence():
+    """All related_results must also carry relevance_score and confidence_level."""
+    response = client.post(
+        "/api/query",
+        json={"question": "What are fundamental rights?", "top_k": 3},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    for result in data["related_results"]:
+        assert "relevance_score" in result
+        assert "confidence_level" in result
+        assert isinstance(result["relevance_score"], int)
+        assert 0 <= result["relevance_score"] <= 100
+        assert result["confidence_level"] in ("high", "medium", "low")
+
+
+def test_exact_reference_gets_max_relevance_score():
+    """An exact statutory reference lookup (distance=0.0) must yield relevance_score=100 and confidence_level='high'."""
+    response = client.post(
+        "/api/query",
+        json={"question": "Article 21"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    result = data["primary_result"]
+    # Exact match is prepended with distance=0.0 by the hybrid retrieval step
+    assert result["relevance_score"] == 100
+    assert result["confidence_level"] == "high"
+    assert result["distance"] == 0.0
+
+
+def test_relevance_score_consistent_with_distance():
+    """relevance_score must be mathematically consistent with the returned distance."""
+    response = client.post(
+        "/api/query",
+        json={"question": "What is bail?", "top_k": 3},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+
+    all_results = [data["primary_result"]] + data["related_results"]
+    for result in all_results:
+        distance = result["distance"]
+        score = result["relevance_score"]
+        expected = max(0, round((1.0 - min(2.0, max(0.0, distance)) / 2.0) * 100))
+        assert score == expected, (
+            f"relevance_score {score} not consistent with distance {distance} "
+            f"(expected {expected})"
+        )
+
+
+def test_confidence_level_thresholds():
+    """confidence_level must match documented thresholds relative to relevance_score."""
+    response = client.post(
+        "/api/query",
+        json={"question": "What is the right to equality?", "top_k": 3},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+
+    all_results = [data["primary_result"]] + data["related_results"]
+    for result in all_results:
+        score = result["relevance_score"]
+        level = result["confidence_level"]
+        if score >= 75:
+            assert level == "high", f"score={score} should be 'high' but got '{level}'"
+        elif score >= 40:
+            assert level == "medium", f"score={score} should be 'medium' but got '{level}'"
+        else:
+            assert level == "low", f"score={score} should be 'low' but got '{level}'"
+
+
+def test_relevance_score_unit_function():
+    """Unit-test _relevance_from_distance directly for boundary values."""
+    import sys
+    sys.path.insert(0, "backend")
+    from app.services.legal_query_service import _relevance_from_distance
+
+    # Perfect match (exact reference lookup)
+    score, level = _relevance_from_distance(0.0)
+    assert score == 100
+    assert level == "high"
+
+    # Mid-range
+    score, level = _relevance_from_distance(0.5)
+    assert score == 75
+    assert level == "high"
+
+    score, level = _relevance_from_distance(0.6)
+    assert score == 70
+    assert level == "medium"
+
+    score, level = _relevance_from_distance(1.0)
+    assert score == 50
+    assert level == "medium"
+
+    score, level = _relevance_from_distance(1.2)
+    assert score == 40
+    assert level == "medium"
+
+    score, level = _relevance_from_distance(1.21)
+    assert score == 40  # round(0.3950 * 100) = 40 but let's check boundary
+    # Actually: (1 - 1.21/2) * 100 = (1 - 0.605) * 100 = 39.5 -> rounds to 40
+    # boundary for 'low' is score < 40, so 40 is medium
+    assert level == "medium"
+
+    # Low confidence
+    score, level = _relevance_from_distance(1.5)
+    assert score == 25
+    assert level == "low"
+
+    # Worst match
+    score, level = _relevance_from_distance(2.0)
+    assert score == 0
+    assert level == "low"
+
+    # Clamped — should not go below 0
+    score, level = _relevance_from_distance(3.0)
+    assert score == 0
+    assert level == "low"

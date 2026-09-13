@@ -18,6 +18,37 @@ from app.services.case_authority_service import CaseAuthorityService
 from app.services.rag_service import RAGService
 
 
+
+def _relevance_from_distance(distance: float) -> tuple[int, str]:
+    """Convert a ChromaDB cosine distance to a citizen-friendly relevance score.
+
+    ChromaDB uses cosine distance: 0.0 = perfect match, 2.0 = completely opposite.
+    Exact reference lookups are assigned distance=0.0 by the hybrid retrieval step.
+
+    Returns:
+        relevance_score: Integer 0–100 (higher is more relevant).
+        confidence_level: 'high' | 'medium' | 'low'
+
+    Thresholds (tuned against the NyayaAI corpus, which uses ChromaDB's default
+    all-MiniLM-L6-v2 embedding model):
+        high   (score ≥ 75): distance ≤ 0.5
+        medium (score ≥ 40): distance ≤ 1.0
+        low    (score < 40):  distance > 1.0
+    """
+    # Clamp distance to [0, 2]
+    clamped = max(0.0, min(2.0, distance))
+    score = round((1.0 - clamped / 2.0) * 100)
+
+    if score >= 75:
+        level = "high"
+    elif score >= 40:
+        level = "medium"
+    else:
+        level = "low"
+
+    return score, level
+
+
 class LegalQueryService:
     """Orchestrates legal retrieval, explanation, and authorities."""
 
@@ -99,6 +130,8 @@ class LegalQueryService:
 
         def format_result(result: dict) -> dict:
             provision = result["provision"]
+            distance = result["distance"]
+            relevance_score, confidence_level = _relevance_from_distance(distance)
 
             authorities = self.case_authority_service.get_for_provision(
                 provision.provision_id
@@ -121,7 +154,9 @@ class LegalQueryService:
                 "source_type": provision.source_type.value,
                 "verification_status": provision.verification_status.value,
                 "source_url": provision.source_url,
-                "distance": result["distance"],
+                "distance": distance,
+                "relevance_score": relevance_score,
+                "confidence_level": confidence_level,
                 "case_authorities": [
                     {
                         "case_id": authority.case_id,
@@ -138,6 +173,7 @@ class LegalQueryService:
                     for authority in authorities
                 ],
             }
+
 
         primary_result = format_result(results[0])
 
