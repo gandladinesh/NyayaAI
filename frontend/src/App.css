@@ -507,6 +507,65 @@ footer p {
   color: #991b1b;
 }
 
+.error-content {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.error-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.error-text h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  color: #991b1b;
+}
+
+.error-text p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #7f1d1d;
+}
+
+.error-actions {
+  display: flex;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid #fecaca;
+}
+
+.retry-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 9px;
+  background: #991b1b;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.retry-button:hover:not(:disabled) {
+  background: #7f1d1d;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(23, 32, 51, 0.15);
+}
+
+.retry-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .card-top-meta {
   display: flex;
   align-items: center;

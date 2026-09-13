@@ -39,6 +39,7 @@ function App() {
   const [answer, setAnswer] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [errorType, setErrorType] = useState(""); // "network" | "api" | "no_result"
 
   // Action Mode state
   const [selectedState, setSelectedState] = useState("");
@@ -49,6 +50,36 @@ function App() {
   const [actionResult, setActionResult] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [actionErrorType, setActionErrorType] = useState("");
+
+  // Helper function to get user-friendly error message
+  const getErrorMessage = (errorType) => {
+    switch (errorType) {
+      case "network":
+        return {
+          title: "Unable to Connect",
+          message:
+            "The legal information service is not responding. Please check that the backend server is running and accessible at http://127.0.0.1:8000.",
+        };
+      case "api":
+        return {
+          title: "Service Error",
+          message:
+            "The service encountered an error processing your request. Please try again.",
+        };
+      case "no_result":
+        return {
+          title: "No Relevant Information Found",
+          message:
+            "The service couldn't find legal provisions matching your question. Try rephrasing your question or ask about a different legal topic.",
+        };
+      default:
+        return {
+          title: "Error",
+          message: "An unexpected error occurred. Please try again.",
+        };
+    }
+  };
 
   const askNyayaAI = async () => {
     if (!question.trim()) {
@@ -57,6 +88,7 @@ function App() {
 
     setLoading(true);
     setError("");
+    setErrorType("");
     setAnswer(null);
 
     try {
@@ -72,22 +104,24 @@ function App() {
       });
 
       if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
+        setErrorType("api");
+        setError(getErrorMessage("api").message);
+        return;
       }
 
       const data = await response.json();
 
       if (data.status !== "success") {
-        setError(data.message || "No relevant legal information was found.");
+        setErrorType("no_result");
+        setError(getErrorMessage("no_result").message);
         return;
       }
 
       setAnswer(data);
     } catch (err) {
       console.error(err);
-      setError(
-        "Unable to connect to NyayaAI. Please make sure the backend server is running."
-      );
+      setErrorType("network");
+      setError(getErrorMessage("network").message);
     } finally {
       setLoading(false);
     }
@@ -99,11 +133,13 @@ function App() {
 
     if (!selectedState || !selectedDistrict || !selectedCategory) {
       setActionError("Please select a State, District, and Legal Problem Category.");
+      setActionErrorType("");
       return;
     }
 
     setActionLoading(true);
     setActionError("");
+    setActionErrorType("");
     setActionResult(null);
 
     try {
@@ -115,15 +151,20 @@ function App() {
 
       const response = await fetch(`http://127.0.0.1:8000/api/route?${queryParams.toString()}`);
       if (!response.ok) {
-        throw new Error(`Routing request failed with status ${response.status}`);
+        setActionErrorType("api");
+        setActionError(
+          "The service encountered an error routing your request. Please try again."
+        );
+        return;
       }
 
       const data = await response.json();
       setActionResult(data);
     } catch (err) {
       console.error("Action Mode error:", err);
+      setActionErrorType("network");
       setActionError(
-        "Unable to route authority. Please make sure the backend server is running."
+        "Unable to connect to the routing service. Please check that the backend server is running and accessible at http://127.0.0.1:8000."
       );
     } finally {
       setActionLoading(false);
@@ -284,8 +325,23 @@ function App() {
           <>
             {error && (
               <section className="result-card error-card">
-                <h3>Unable to answer</h3>
-                <p>{error}</p>
+                <div className="error-content">
+                  <div className="error-icon">⚠️</div>
+                  <div className="error-text">
+                    <h3>{getErrorMessage(errorType).title}</h3>
+                    <p>{error}</p>
+                  </div>
+                </div>
+                <div className="error-actions">
+                  <button
+                    type="button"
+                    className="retry-button"
+                    onClick={askNyayaAI}
+                    disabled={loading}
+                  >
+                    {loading ? "Retrying..." : "↻ Retry"}
+                  </button>
+                </div>
               </section>
             )}
 
@@ -407,8 +463,27 @@ function App() {
           <>
             {actionError && (
               <section className="result-card error-card">
-                <h3>Routing Error</h3>
-                <p>{actionError}</p>
+                <div className="error-content">
+                  <div className="error-icon">⚠️</div>
+                  <div className="error-text">
+                    <h3>
+                      {actionErrorType === "network"
+                        ? "Unable to Connect"
+                        : "Routing Error"}
+                    </h3>
+                    <p>{actionError}</p>
+                  </div>
+                </div>
+                <div className="error-actions">
+                  <button
+                    type="button"
+                    className="retry-button"
+                    onClick={handleActionSubmit}
+                    disabled={actionLoading}
+                  >
+                    {actionLoading ? "Retrying..." : "↻ Retry"}
+                  </button>
+                </div>
               </section>
             )}
 
