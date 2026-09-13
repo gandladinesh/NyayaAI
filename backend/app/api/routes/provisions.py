@@ -13,15 +13,36 @@ router = APIRouter(
 service = LegalProvisionService()
 
 
-@router.get("")
+@router.get(
+    "",
+    summary="Browse legal provisions or search with keywords",
+    responses={
+        200: {"description": "List of legal provisions (optionally filtered by search query)"},
+        400: {"description": "Invalid search query"},
+    }
+)
 async def get_provisions(
-    search: Optional[str] = Query(default=None),
+    search: Optional[str] = Query(
+        default=None,
+        description="Optional keyword search (e.g., 'right to life', 'bail', 'arrest'). Performs keyword-based lookup across provision titles and text.",
+    ),
 ):
-    """
-    Return legal provisions from the verified local corpus.
-
-    If search is provided, perform a Phase-1 keyword search.
-    Otherwise, return all provisions.
+    """Browse verified legal provisions or search by keyword.
+    
+    **Modes:**
+    1. **Browse all:** Call without `search` parameter to list all verified provisions in corpus
+    2. **Keyword search:** Provide `search` parameter to find provisions matching keywords
+    
+    **Response format:**
+    ```json
+    {
+      "count": 42,
+      "provisions": [... array of LegalProvision objects ...]
+    }
+    ```
+    
+    **Note:** This is a Phase-1 implementation using keyword search.
+    For semantic search with AI explanations, use the /api/query endpoint instead.
     """
     if search:
         provisions = service.search(search)
@@ -34,9 +55,29 @@ async def get_provisions(
     }
 
 
-@router.get("/{provision_id}")
+@router.get(
+    "/{provision_id}",
+    summary="Get details of a specific legal provision",
+    responses={
+        200: {"description": "Complete provision information including exact legal text and source details"},
+        404: {"description": "Provision ID not found in corpus"},
+    }
+)
 async def get_provision(provision_id: str):
-    """Return a single legal provision by provision ID."""
+    """Fetch detailed information for a specific legal provision.
+    
+    Returns:
+    - Full provision text from verified official source
+    - Category and classification (Constitution, IPC, BNS, etc.)
+    - Citation information
+    - Source reference and verification status
+    - Related case authorities where applicable
+    
+    **Verification:**
+    - VERIFIED provisions have official text from government sources
+    - PARTIALLY_VERIFIED provisions may have minor formatting changes
+    - UNVERIFIED provisions need additional validation
+    """
     provision = service.get_by_id(provision_id)
 
     if provision is None:
