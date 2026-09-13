@@ -16,6 +16,18 @@ async def lifespan(app: FastAPI):
     # Startup: Ensure tables exist and seed baseline authorities and states
     await create_tables()
     await seed_authorities_database()
+
+    # Ensure vector store is initialized with provisions if collection is empty
+    try:
+        from app.services.rag_service import RAGService
+        from app.services.legal_provision_service import LegalProvisionService
+        rag = RAGService()
+        if rag.collection_count() == 0:
+            provisions = LegalProvisionService().get_all()
+            rag.index_provisions(provisions)
+    except Exception:
+        pass
+
     yield
     # Shutdown logic if any
 
@@ -47,10 +59,7 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -16,7 +16,7 @@ class QueryRequest(BaseModel):
         min_length=1,
         max_length=2000,
         description="The legal question or topic to search for (1-2000 characters)",
-        example="What is the right to life guaranteed under the Indian Constitution?"
+        json_schema_extra={"example": "What is the right to life guaranteed under the Indian Constitution?"}
     )
     category: Optional[ProvisionCategory] = Field(
         default=None,

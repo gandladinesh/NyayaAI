@@ -20,8 +20,11 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
 
-    # ── CORS ──────────────────────────────────────────────────────────────────
-    allowed_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
+    allowed_origins: list[str] = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+    ]
 
     # ── Database — SQLite for Phase 1, PostgreSQL-ready ───────────────────────
     # To migrate to PostgreSQL: set DATABASE_URL=postgresql+asyncpg://user:pass@host/db
@@ -39,7 +42,7 @@ class Settings(BaseSettings):
     # ── Vector Store: ChromaDB (Phase 1 decision) ─────────────────────────────
     # To migrate to pgvector: set vector_store=pgvector and DATABASE_URL to PG
     vector_store: Literal["chromadb", "pgvector"] = "chromadb"
-    chroma_persist_directory: str = "./chroma_db"
+    chroma_persist_directory: str = str(Path(__file__).resolve().parents[2] / "chroma_db").replace("\\", "/")
     chroma_collection_name: str = "nyayaai_provisions"
 
     # ── IndianKanoon (optional — supplementary source only) ───────────────────
