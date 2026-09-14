@@ -46,10 +46,12 @@ const PROBLEM_CATEGORIES = [
 function App() {
   const [question, setQuestion] = useState("");
   const [mode, setMode] = useState("information");
+  const [language, setLanguage] = useState("en");
   const [answer, setAnswer] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [errorType, setErrorType] = useState(""); // "network" | "api" | "no_result"
+  const [unresolvedData, setUnresolvedData] = useState(null); // stores { status, message, suggestions, next_steps }
 
   // Action Mode state
   const [selectedState, setSelectedState] = useState("");
@@ -81,12 +83,42 @@ function App() {
         return {
           title: "No Relevant Information Found",
           message:
-            "The service couldn't find legal provisions matching your question. Try rephrasing your question or ask about a different legal topic.",
+            "The service couldn't find legal provisions matching your question. Try rephrasing your question or explore the suggestions below.",
         };
       default:
         return {
           title: "Error",
           message: "An unexpected error occurred. Please try again.",
+        };
+    }
+  };
+
+  // Helper to map confidence level to citizen-friendly label and styling
+  const getConfidenceInfo = (level, score) => {
+    switch (level) {
+      case "high":
+        return {
+          label: "High confidence",
+          className: "confidence-high",
+          scoreText: score !== undefined ? `${score}% match` : "",
+        };
+      case "medium":
+        return {
+          label: "Moderate confidence",
+          className: "confidence-medium",
+          scoreText: score !== undefined ? `${score}% match` : "",
+        };
+      case "low":
+        return {
+          label: "Low confidence",
+          className: "confidence-low",
+          scoreText: score !== undefined ? `${score}% match` : "",
+        };
+      default:
+        return {
+          label: score !== undefined ? `${score}% relevance` : "Relevance score",
+          className: "confidence-default",
+          scoreText: score !== undefined ? `${score}%` : "",
         };
     }
   };
@@ -100,6 +132,7 @@ function App() {
     setError("");
     setErrorType("");
     setAnswer(null);
+    setUnresolvedData(null);
 
     try {
       const response = await fetch(API_ENDPOINTS.query, {
@@ -110,6 +143,7 @@ function App() {
         body: JSON.stringify({
           question: question.trim(),
           top_k: 3,
+          language: language,
         }),
       });
 
@@ -123,7 +157,13 @@ function App() {
 
       if (data.status !== "success") {
         setErrorType("no_result");
-        setError(getErrorMessage("no_result").message);
+        setError(data.message || getErrorMessage("no_result").message);
+        setUnresolvedData({
+          status: data.status,
+          message: data.message,
+          suggestions: data.suggestions || [],
+          next_steps: data.next_steps || [],
+        });
         return;
       }
 
@@ -136,6 +176,7 @@ function App() {
       setLoading(false);
     }
   };
+
 
   // Action Mode authority routing handler
   const handleActionSubmit = async (e) => {
@@ -250,7 +291,25 @@ function App() {
                 />
 
                 <div className="query-footer">
-                  <span className="query-hint">Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to search</span>
+                  <div className="query-footer-left">
+                    <span className="query-hint">Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to search</span>
+                    <div className="language-selector-inline">
+                      <label htmlFor="lang-select" className="lang-label">Language:</label>
+                      <select
+                        id="lang-select"
+                        value={language}
+                        onChange={(e) => setLanguage(e.target.value)}
+                        className="lang-select"
+                        disabled={loading}
+                        title="Select explanation language (Statutory text remains in authoritative English)"
+                      >
+                        <option value="en">English</option>
+                        <option value="hi">हिंदी (Hindi)</option>
+                        <option value="te">తెలుగు (Telugu)</option>
+                        <option value="mr">मराठी (Marathi)</option>
+                      </select>
+                    </div>
+                  </div>
 
                   <button
                     type="button"
@@ -260,6 +319,7 @@ function App() {
                     {loading ? "Searching Verified Corpus..." : "Ask NyayaAI →"}
                   </button>
                 </div>
+
               </div>
 
               <div className="sample-queries-container">
@@ -371,6 +431,40 @@ function App() {
                     <p>{error}</p>
                   </div>
                 </div>
+
+                {/* Suggestions for rephrasing or searching */}
+                {unresolvedData?.suggestions?.length > 0 && (
+                  <div className="unresolved-guidance-box">
+                    <div className="guidance-heading">
+                      <span className="guidance-icon">💡</span>
+                      <h4>Search Suggestions</h4>
+                    </div>
+                    <ul className="guidance-list">
+                      {unresolvedData.suggestions.map((suggestion, idx) => (
+                        <li key={idx}>{suggestion}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Official redressal pathways */}
+                {unresolvedData?.next_steps?.length > 0 && (
+                  <div className="unresolved-redressal-box">
+                    <div className="guidance-heading">
+                      <span className="guidance-icon">🏛️</span>
+                      <h4>Official Citizen Redressal Pathways</h4>
+                    </div>
+                    <ul className="redressal-list">
+                      {unresolvedData.next_steps.map((step, idx) => (
+                        <li key={idx}>{step}</li>
+                      ))}
+                    </ul>
+                    <p className="redressal-disclaimer">
+                      Note: These are official redressal channels and guidance pathways, not a formal legal opinion.
+                    </p>
+                  </div>
+                )}
+
                 <div className="error-actions">
                   <button
                     type="button"
@@ -392,6 +486,25 @@ function App() {
                 </div>
 
                 <CitationActions answer={answer} />
+
+                {/* Confidence & Relevance Banner */}
+                {answer.primary_result.confidence_level && (
+                  <div className="confidence-banner">
+                    <div className="confidence-main">
+                      <span className={`confidence-pill ${getConfidenceInfo(answer.primary_result.confidence_level).className}`}>
+                        {getConfidenceInfo(answer.primary_result.confidence_level).label}
+                      </span>
+                      {answer.primary_result.relevance_score !== undefined && (
+                        <span className="relevance-score-tag">
+                          {answer.primary_result.relevance_score}% Relevance Score
+                        </span>
+                      )}
+                    </div>
+                    <p className="confidence-note">
+                      Confidence reflects how closely the verified provision matches your question; it is not a legal opinion.
+                    </p>
+                  </div>
+                )}
 
                 <div className="result-card">
                   <div className="result-label">VERIFIED LEGAL PROVISION</div>
@@ -461,6 +574,37 @@ function App() {
                     View source →
                   </a>
                 </div>
+
+                {/* Related Provisions */}
+                {answer.related_results?.length > 0 && (
+                  <div className="result-card related-results-card">
+                    <div className="result-label">RELATED VERIFIED PROVISIONS</div>
+                    <p className="related-intro">Other provisions identified from the verified corpus that may be relevant:</p>
+                    <div className="related-items-list">
+                      {answer.related_results.map((rel, idx) => (
+                        <div key={rel.provision_id || idx} className="related-item">
+                          <div className="related-item-header">
+                            <span className="related-ref">{rel.reference_number}</span>
+                            <span className="related-act">{rel.act}</span>
+                            {rel.confidence_level && (
+                              <span className={`related-confidence-badge ${getConfidenceInfo(rel.confidence_level).className}`}>
+                                {getConfidenceInfo(rel.confidence_level).label}
+                                {rel.relevance_score !== undefined && ` (${rel.relevance_score}%)`}
+                              </span>
+                            )}
+                          </div>
+                          {rel.ai_explanation && (
+                            <p className="related-explanation">{rel.ai_explanation}</p>
+                          )}
+                          <div className="related-meta">
+                            <span>✓ {rel.verification_status}</span>
+                            {rel.official_citation && <span>• {rel.official_citation}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </section>
             )}
 
