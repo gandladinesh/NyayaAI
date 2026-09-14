@@ -898,3 +898,73 @@ def test_relevance_score_unit_function():
     score, level = _relevance_from_distance(3.0)
     assert score == 0
     assert level == "low"
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Phase 3 Task 5: Citizen Redressal Guidance and Search Suggestions
+# ─────────────────────────────────────────────────────────────────────────
+
+def test_no_relevant_provision_includes_suggestions_and_next_steps():
+    """When no relevant provision is found, structured suggestions and next_steps must be returned."""
+    response = client.post(
+        "/api/query",
+        json={"question": "xyzabc fghijklmnop qrstuv"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "no_relevant_provision"
+
+    # Must contain suggestions list
+    assert "suggestions" in data
+    assert isinstance(data["suggestions"], list)
+    assert len(data["suggestions"]) >= 3
+    # Check that helpful guidance is present
+    suggestions_text = " ".join(data["suggestions"]).lower()
+    assert "rephrase" in suggestions_text or "article" in suggestions_text or "provisions" in suggestions_text
+
+    # Must contain official redressal next_steps list
+    assert "next_steps" in data
+    assert isinstance(data["next_steps"], list)
+    assert len(data["next_steps"]) >= 3
+    # Must refer to official free legal aid (DLSA / NALSA)
+    next_steps_text = " ".join(data["next_steps"]).lower()
+    assert "dlsa" in next_steps_text or "nalsa" in next_steps_text or "legal aid" in next_steps_text
+
+
+def test_invalid_query_includes_suggestions_and_next_steps():
+    """Whitespace-only query returning 'invalid' status must also provide suggestions and next_steps."""
+    response = client.post(
+        "/api/query",
+        json={"question": "   "},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "invalid"
+    assert "suggestions" in data
+    assert isinstance(data["suggestions"], list)
+    assert len(data["suggestions"]) >= 2
+    assert "next_steps" in data
+    assert isinstance(data["next_steps"], list)
+    assert len(data["next_steps"]) >= 1
+
+
+def test_no_relevant_provision_schema_contract_preserved():
+    """Existing API contract for no_relevant_provision must be strictly preserved."""
+    response = client.post(
+        "/api/query",
+        json={"question": "kfhsdkfhskdfhskdhfskdhf"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    # Contract invariant checks
+    assert data["status"] == "no_relevant_provision"
+    assert data["primary_result"] is None
+    assert data["related_results"] == []
+    assert "message" in data
+    assert "could not find" in data["message"].lower()
+    assert "language" in data
+    assert data["language"] == "en"
+    # New Task 5 fields present
+    assert "suggestions" in data
+    assert "next_steps" in data
+

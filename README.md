@@ -194,10 +194,14 @@ npm run build
 - [x] Legal Citation Export (Download & Clipboard Copy)
 - [x] Dockerization & Production Environment Templates
 - [x] Phase 2 Legal Corpus Expansion: Bharatiya Nyaya Sanhita (BNS), BNSS, BSA (41 verified provisions)
-- [ ] Multilingual Support (Hindi, Telugu, Marathi)
+- [x] Phase 3 Legal Corpus Expansion: 50 verified provisions across Constitution, BNS, BNSS, BSA
+- [x] Phase 3 Hybrid Retrieval & Predecessor Mapping (IPC/CrPC cross-references, ranked search)
+- [x] Phase 3 Multilingual AI Explanations: English, Hindi, Telugu, Marathi (`en`, `hi`, `te`, `mr`)
+- [x] Phase 3 Citizen Confidence Signals & Redressal Pathways (relevance scoring, DLSA/NALSA next steps)
 - [ ] PostgreSQL + `pgvector` migration for enterprise deployments
 
 ---
+
 
 ## ⚖️ Legal Disclaimer
 

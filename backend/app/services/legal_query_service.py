@@ -83,6 +83,16 @@ class LegalQueryService:
                 "primary_result": None,
                 "related_results": [],
                 "language": language,
+                "suggestions": [
+                    "Try asking about fundamental rights (e.g., 'What is right to life?')",
+                    "Ask about criminal law (e.g., 'What is cheating under BNS?')",
+                    "Ask about procedure (e.g., 'How is an FIR registered under BNSS?')",
+                    "Ask about evidence (e.g., 'Admissibility of electronic evidence under BSA')",
+                ],
+                "next_steps": [
+                    "Enter a specific question describing your situation or legal concern.",
+                    "If you know the specific provision, search by reference number (e.g., 'Article 21', 'Section 173').",
+                ],
             }
 
         # Hybrid retrieval: Check if query contains an exact or direct reference
@@ -126,7 +136,20 @@ class LegalQueryService:
                 "primary_result": None,
                 "related_results": [],
                 "language": language,
+                "suggestions": [
+                    "Rephrase your question using common legal terms (e.g., 'theft', 'bail', 'FIR', 'equality', 'speedy trial').",
+                    "Specify the legal act or category (Constitution, BNS, BNSS, or BSA).",
+                    "Search by Article or Section number (e.g., 'Article 21', 'Section 100', 'Section 482').",
+                    "Browse all available verified provisions using the /api/provisions endpoint.",
+                ],
+                "next_steps": [
+                    "For free official legal aid, contact your nearest District Legal Services Authority (DLSA) or visit https://nalsa.gov.in.",
+                    "For consumer complaints, visit the National Consumer Helpline at https://consumerhelpline.gov.in or call 1915.",
+                    "For human rights grievances, approach the State Human Rights Commission (SHRC) or National Human Rights Commission (NHRC).",
+                    "Consult a qualified advocate for representation or formal legal advice.",
+                ],
             }
+
 
         def format_result(result: dict) -> dict:
             provision = result["provision"]
