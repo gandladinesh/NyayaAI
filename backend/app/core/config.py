@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     app_title: str = "NyayaAI Legal Assistant"
     app_version: str = "1.0.0-phase3"
     debug: bool = False
+    environment: Literal["development", "staging", "production"] = "development"
     host: str = "0.0.0.0"
     port: int = 8000
 
@@ -25,6 +26,17 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
         "http://localhost:3000",
     ]
+
+    @property
+    def cors_origins(self) -> list[str]:
+        """Return CORS allowed origins.
+        
+        If allowed_origins is configured via env (e.g. comma-separated string or list),
+        returns those origins. Strips whitespace and trailing slashes.
+        """
+        if isinstance(self.allowed_origins, str):
+            return [origin.strip().rstrip("/") for origin in self.allowed_origins.split(",") if origin.strip()]
+        return [origin.strip().rstrip("/") for origin in self.allowed_origins if origin.strip()]
 
     # ── Database — SQLite for Phase 1, PostgreSQL-ready ───────────────────────
     # To migrate to PostgreSQL: set DATABASE_URL=postgresql+asyncpg://user:pass@host/db
@@ -38,6 +50,7 @@ class Settings(BaseSettings):
     # OpenAI kept as future option
     openai_api_key: Optional[str] = None
     openai_model: str = "gpt-4o"
+
 
     # ── Vector Store: ChromaDB (Phase 1 decision) ─────────────────────────────
     # To migrate to pgvector: set vector_store=pgvector and DATABASE_URL to PG

@@ -3,13 +3,18 @@ NyayaAI Backend Application (Phase 1).
 """
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+import logging
 
 from app.core.config import settings
 from app.core.database import create_tables
 from app.services.authority_seeder import seed_authorities_database
 from app.api.routes import authorities, health, provisions, query
+
+logger = logging.getLogger("nyayaai")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -59,11 +64,33 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins,
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch unhandled internal errors and return a citizen-safe error response.
+
+    Prevents raw stack traces, file paths, database connection strings,
+    or API credentials from being leaked to users or malicious actors.
+    """
+    logger.error(
+        f"Unhandled error processing {request.method} {request.url.path}: {exc}",
+        exc_info=settings.debug,
+    )
+    return JSONResponse(
+        status_code=500,
+        content={
+            "status": "error",
+            "message": "An unexpected error occurred while processing your legal request. Please try again later.",
+            "detail": str(exc) if settings.debug else "Internal server error.",
+        },
+    )
+
 
 # Register routes with both /api and root prefixes for flexible client consumption
 app.include_router(health.router)

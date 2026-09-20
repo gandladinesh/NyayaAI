@@ -968,3 +968,75 @@ def test_no_relevant_provision_schema_contract_preserved():
     assert "suggestions" in data
     assert "next_steps" in data
 
+
+# ─────────────────────────────────────────────────────────────────────────
+# Phase 3 Task 7: Production Hardening & API Safety Tests
+# ─────────────────────────────────────────────────────────────────────────
+
+def test_health_check_returns_phase3_metadata_without_secrets():
+    """Health endpoint must return Phase 3 status and environment without leaking secrets."""
+    response = client.get("/health")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["status"] == "healthy"
+    assert "phase" in data
+    assert "Phase 3" in data["phase"]
+    assert "environment" in data
+    assert "vector_store" in data
+
+    # Verify no credentials or internal secrets are exposed
+    json_text = response.text.lower()
+    assert "api_key" not in json_text
+    assert "password" not in json_text
+    assert "secret" not in json_text
+
+
+def test_health_check_available_on_api_prefix():
+    """Health check must be accessible on both /health and /api/health."""
+    response = client.get("/api/health")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "healthy"
+
+
+def test_cors_origins_property_parses_properly():
+    """Settings.cors_origins must return a clean list of origins without trailing slashes."""
+    from app.core.config import Settings
+
+    custom_settings = Settings(
+        allowed_origins=["http://localhost:5173/", "http://example.com  "]
+    )
+    origins = custom_settings.cors_origins
+    assert "http://localhost:5173" in origins
+    assert "http://example.com" in origins
+    # Trailing slash and whitespace must be stripped
+    assert not any(o.endswith("/") for o in origins)
+
+
+def test_ai_explainer_fallback_on_exception():
+    """AIExplainer must safely fall back to curated provision explanation if generation throws."""
+    from app.services.ai_explainer import AIExplainer
+    from app.services.legal_provision_service import LegalProvisionService
+    from unittest.mock import MagicMock
+
+    explainer = AIExplainer()
+    # Mock the client to raise an exception (simulating network timeout or quota exhaustion)
+    mock_client = MagicMock()
+    mock_client.models.generate_content.side_effect = RuntimeError("Upstream network error")
+    explainer.client = mock_client
+
+    # Use a real curated provision from the verified corpus
+    prov_service = LegalProvisionService()
+    test_prov = prov_service.get_all()[0]
+    assert test_prov.ai_explanation is not None
+
+    result = explainer.explain(
+        question="Explain this provision",
+        provision=test_prov,
+    )
+    # Must return the verified corpus explanation, not crash or re-raise
+    assert result == test_prov.ai_explanation
+
+
+

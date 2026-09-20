@@ -17,18 +17,24 @@ async def health_check():
     """Check NyayaAI backend service health and retrieve version information.
     
     Returns:
-    - `status`: Current service status (healthy/degraded/offline)
+    - `status`: Current service status ('healthy')
     - `app_title`: NyayaAI application name
     - `app_version`: Current API version
-    - `database`: Database type (sqlite for Phase 1, PostgreSQL for production)
-    - `phase`: Development phase (Phase 1 Prototype, etc.)
+    - `database`: Database engine type
+    - `vector_store`: Vector database engine
+    - `environment`: Operational environment (development/staging/production)
+    - `phase`: Current deployment phase
     
     Use this endpoint to verify the service is running before making API calls.
+    Secrets and internal credentials are never exposed.
     """
     return {
         "status": "healthy",
         "app_title": settings.app_title,
         "app_version": settings.app_version,
         "database": "sqlite",
-        "phase": "Phase 1 Prototype"
+        "vector_store": settings.vector_store,
+        "environment": settings.environment,
+        "phase": "Phase 3 Production-Ready",
     }
+

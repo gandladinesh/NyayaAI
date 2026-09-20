@@ -101,15 +101,21 @@ Exact legal text:
 Provide a concise explanation in simple language.
 """
 
-        response = self.client.models.generate_content(
-            model=settings.gemini_model,
-            contents=prompt,
-        )
-
-        if not response.text:
-            return (
-                provision.ai_explanation
-                or "An AI explanation is not currently available."
+        try:
+            response = self.client.models.generate_content(
+                model=settings.gemini_model,
+                contents=prompt,
             )
 
-        return response.text.strip()
+            if response and response.text:
+                return response.text.strip()
+        except Exception:
+            # On network timeout, quota exceeded, or upstream API error,
+            # safely fall back to the curated, verified explanation without leaking errors.
+            pass
+
+        return (
+            provision.ai_explanation
+            or "An AI explanation is not currently available."
+        )
+
