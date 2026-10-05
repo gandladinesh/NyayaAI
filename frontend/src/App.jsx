@@ -8,31 +8,55 @@ import CitationActions from "./components/CitationActions";
 import { API_BASE_URL, API_ENDPOINTS } from "./config";
 
 const SAMPLE_QUESTIONS = [
-  { label: "Right to Life (Art. 21)", query: "What is the right to life under Article 21?" },
-  { label: "Equality Before Law (Art. 14)", query: "What does equality before the law mean under Article 14?" },
-  { label: "Freedom of Speech (Art. 19)", query: "What are the six freedoms guaranteed under Article 19?" },
-  { label: "Filing an FIR (BNSS s. 173)", query: "What are the rules for First Information Report under Bharatiya Nagarik Suraksha Sanhita?" },
-  { label: "Theft Offence (BNS s. 303)", query: "What is the legal definition and punishment for theft under BNS?" },
-  { label: "Electronic Evidence (BSA s. 65)", query: "What are the requirements for admissibility of electronic records as evidence under BSA?" },
+  {
+    category: "Constitution",
+    label: "Right to Life (Art. 21)",
+    query: "What is the right to life under Article 21?",
+  },
+  {
+    category: "Constitution",
+    label: "Equality Before Law (Art. 14)",
+    query: "What does equality before the law mean under Article 14?",
+  },
+  {
+    category: "Constitution",
+    label: "Freedom of Speech (Art. 19)",
+    query: "What are the six freedoms guaranteed under Article 19?",
+  },
+  {
+    category: "Criminal (BNS)",
+    label: "Theft Offence (BNS s. 303)",
+    query: "What is the legal definition and punishment for theft under BNS?",
+  },
+  {
+    category: "Procedure (BNSS)",
+    label: "Filing an FIR (BNSS s. 173)",
+    query: "What are the rules for First Information Report under Bharatiya Nagarik Suraksha Sanhita?",
+  },
+  {
+    category: "Evidence (BSA)",
+    label: "Electronic Evidence (BSA s. 65)",
+    query: "What are the requirements for admissibility of electronic records as evidence under BSA?",
+  },
 ];
 
 const PROBLEM_CATEGORIES = [
   {
     id: "consumer_dispute",
     title: "Consumer Dispute",
-    desc: "Defective products, deficient services, overcharging, unfair practices",
+    desc: "Defective products, deficient services, overcharging, unfair trade practices",
     icon: "🛒",
   },
   {
     id: "real_estate",
     title: "Real Estate & Housing",
-    desc: "Delayed possession, builder default, structural defects, RERA violations",
+    desc: "Delayed possession, builder default, structural defects, RERA compliance",
     icon: "🏢",
   },
   {
     id: "legal_aid",
     title: "Free Legal Aid",
-    desc: "Legal representation for eligible citizens, Lok Adalat resolution, DLSA",
+    desc: "Legal representation for eligible citizens, Lok Adalat dispute resolution, DLSA",
     icon: "⚖️",
   },
   {
@@ -51,7 +75,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [errorType, setErrorType] = useState(""); // "network" | "api" | "no_result"
-  const [unresolvedData, setUnresolvedData] = useState(null); // stores { status, message, suggestions, next_steps }
+  const [unresolvedData, setUnresolvedData] = useState(null);
 
   // Action Mode state
   const [selectedState, setSelectedState] = useState("");
@@ -64,26 +88,22 @@ function App() {
   const [actionError, setActionError] = useState("");
   const [actionErrorType, setActionErrorType] = useState("");
 
-  // Helper function to get user-friendly error message
-  const getErrorMessage = (errorType) => {
-    switch (errorType) {
+  const getErrorMessage = (type) => {
+    switch (type) {
       case "network":
         return {
-          title: "Unable to Connect",
-          message:
-            `The legal information service is not responding. Please check that the backend server is running and accessible at ${API_BASE_URL}.`,
+          title: "Unable to Connect to Backend",
+          message: `The legal information service is not responding. Please check that the backend server is running and accessible at ${API_BASE_URL}.`,
         };
       case "api":
         return {
           title: "Service Error",
-          message:
-            "The service encountered an error processing your request. Please try again.",
+          message: "The service encountered an error processing your request. Please try again.",
         };
       case "no_result":
         return {
-          title: "No Relevant Information Found",
-          message:
-            "The service couldn't find legal provisions matching your question. Try rephrasing your question or explore the suggestions below.",
+          title: "No Relevant Provision Found",
+          message: "The verified legal corpus does not have an exact or high-confidence match for your query. Try rephrasing with legal keywords or explore official redressal pathways below.",
         };
       default:
         return {
@@ -93,30 +113,29 @@ function App() {
     }
   };
 
-  // Helper to map confidence level to citizen-friendly label and styling
   const getConfidenceInfo = (level, score) => {
     switch (level) {
       case "high":
         return {
-          label: "High confidence",
+          label: "High Confidence",
           className: "confidence-high",
           scoreText: score !== undefined ? `${score}% match` : "",
         };
       case "medium":
         return {
-          label: "Moderate confidence",
+          label: "Moderate Confidence",
           className: "confidence-medium",
           scoreText: score !== undefined ? `${score}% match` : "",
         };
       case "low":
         return {
-          label: "Low confidence",
+          label: "Low Confidence",
           className: "confidence-low",
           scoreText: score !== undefined ? `${score}% match` : "",
         };
       default:
         return {
-          label: score !== undefined ? `${score}% relevance` : "Relevance score",
+          label: score !== undefined ? `${score}% Relevance` : "Relevance Score",
           className: "confidence-default",
           scoreText: score !== undefined ? `${score}%` : "",
         };
@@ -124,9 +143,7 @@ function App() {
   };
 
   const askNyayaAI = async () => {
-    if (!question.trim()) {
-      return;
-    }
+    if (!question.trim()) return;
 
     setLoading(true);
     setError("");
@@ -177,8 +194,6 @@ function App() {
     }
   };
 
-
-  // Action Mode authority routing handler
   const handleActionSubmit = async (e) => {
     if (e) e.preventDefault();
 
@@ -203,9 +218,7 @@ function App() {
       const response = await fetch(`${API_ENDPOINTS.route}?${queryParams.toString()}`);
       if (!response.ok) {
         setActionErrorType("api");
-        setActionError(
-          "The service encountered an error routing your request. Please try again."
-        );
+        setActionError("The service encountered an error routing your request. Please try again.");
         return;
       }
 
@@ -222,55 +235,76 @@ function App() {
     }
   };
 
+  // Determine current action step for visual indicator
+  const getActionCurrentStep = () => {
+    if (actionResult) return 4;
+    if (selectedState && selectedDistrict && selectedCategory) return 3;
+    if (selectedState && selectedDistrict) return 2;
+    return 1;
+  };
+
+  const currentStep = getActionCurrentStep();
+
   return (
     <div className="app">
       <header className="header">
-        <div className="brand">
-          <div className="logo">⚖</div>
-          <div>
-            <h1>NyayaAI</h1>
-            <p>Indian Legal & Human Rights Assistant</p>
+        <div className="header-inner">
+          <div className="brand">
+            <div className="logo" aria-label="NyayaAI Scales of Justice">⚖</div>
+            <div>
+              <h1>NyayaAI</h1>
+              <p>Indian Legal Information & Citizen Assistance</p>
+            </div>
+          </div>
+          <div className="header-badge">
+            <span className="status-dot"></span>
+            <span>Verified Corpus Active</span>
           </div>
         </div>
       </header>
 
       <main className="main">
         <section className="hero">
-          <div className="badge">🇮🇳 Citizen Legal Assistance</div>
-          <div className="mode-selector">
-  <button
-    type="button"
-    className={mode === "information" ? "mode-button active" : "mode-button"}
-    onClick={() => setMode("information")}
-  >
-    Information Mode
-  </button>
+          <div className="hero-badge">
+            🇮🇳 Indian Jurisprudence • BNS • BNSS • BSA
+          </div>
 
-  <button
-    type="button"
-    className={mode === "action" ? "mode-button active" : "mode-button"}
-    onClick={() => setMode("action")}
-  >
-    Action Mode
-  </button>
-</div>
+          <div className="mode-selector">
+            <button
+              type="button"
+              className={mode === "information" ? "mode-button active" : "mode-button"}
+              onClick={() => setMode("information")}
+            >
+              <span className="mode-icon">📖</span>
+              <span>Information Mode</span>
+            </button>
+
+            <button
+              type="button"
+              className={mode === "action" ? "mode-button active" : "mode-button"}
+              onClick={() => setMode("action")}
+            >
+              <span className="mode-icon">⚡</span>
+              <span>Action Mode</span>
+            </button>
+          </div>
 
           <h2>
             {mode === "information" ? (
-  <>
-    Understand your <span>legal rights</span>
-  </>
-) : (
-  <>
-    Take action on your <span>legal problem</span>
-  </>
-)}
+              <>
+                Understand your <span>legal rights</span>
+              </>
+            ) : (
+              <>
+                Take action on your <span>legal grievance</span>
+              </>
+            )}
           </h2>
 
           <p className="hero-text">
             {mode === "information"
-              ? "Ask about Indian laws, constitutional rights, legal provisions, and important legal concepts."
-              : "Tell us your jurisdiction and issue. NyayaAI identifies the official responsible authority, statutory procedures, and your 4-step action plan."}
+              ? "Query Indian statutory provisions, constitutional rights, and new criminal codes (BNS, BNSS, BSA) with verified legal grounding."
+              : "Identify the legally empowered official authority, procedural requirements, filing roadmap, and escalation pathways for your jurisdiction."}
           </p>
 
           {/* Mode 1: Information Mode Query Box */}
@@ -286,15 +320,19 @@ function App() {
                       askNyayaAI();
                     }
                   }}
-                  placeholder="Ask a legal question (e.g., What is the right to life guaranteed under Article 21?)..."
-                  rows="4"
+                  placeholder="Ask a legal question (e.g., What is the right to life under Article 21, or filing an FIR under BNSS?)..."
+                  rows="3"
                 />
 
                 <div className="query-footer">
                   <div className="query-footer-left">
-                    <span className="query-hint">Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to search</span>
+                    <span className="query-hint">
+                      Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to search
+                    </span>
                     <div className="language-selector-inline">
-                      <label htmlFor="lang-select" className="lang-label">Language:</label>
+                      <label htmlFor="lang-select" className="lang-label">
+                        Explanation Language:
+                      </label>
                       <select
                         id="lang-select"
                         value={language}
@@ -313,17 +351,17 @@ function App() {
 
                   <button
                     type="button"
+                    className="ask-btn"
                     onClick={askNyayaAI}
                     disabled={!question.trim() || loading}
                   >
-                    {loading ? "Searching Verified Corpus..." : "Ask NyayaAI →"}
+                    {loading ? "Searching Corpus..." : "Ask NyayaAI →"}
                   </button>
                 </div>
-
               </div>
 
               <div className="sample-queries-container">
-                <span className="sample-queries-label">Explore Key Constitutional Rights:</span>
+                <span className="sample-queries-label">Explore Verified Legal Topics:</span>
                 <div className="sample-chips">
                   {SAMPLE_QUESTIONS.map((item, idx) => (
                     <button
@@ -337,7 +375,8 @@ function App() {
                       }}
                       disabled={loading}
                     >
-                      {item.label}
+                      <span className="chip-category">{item.category}</span>
+                      <span>{item.label}</span>
                     </button>
                   ))}
                 </div>
@@ -345,11 +384,34 @@ function App() {
             </div>
           )}
 
-          {/* Mode 2: Action Mode Form */}
+          {/* Mode 2: Action Mode Form with Visual Step Indicator */}
           {mode === "action" && (
             <div className="action-form-box">
+              {/* Visual Step Indicator */}
+              <div className="step-indicator" role="navigation" aria-label="Action Workflow Steps">
+                <div className={`step-item ${currentStep >= 1 ? (currentStep > 1 ? "done" : "active") : ""}`}>
+                  <div className="step-number">{currentStep > 1 ? "✓" : "1"}</div>
+                  <span className="step-label">Jurisdiction</span>
+                </div>
+                <div className={`step-connector ${currentStep > 1 ? "done" : ""}`} />
+                <div className={`step-item ${currentStep >= 2 ? (currentStep > 2 ? "done" : "active") : ""}`}>
+                  <div className="step-number">{currentStep > 2 ? "✓" : "2"}</div>
+                  <span className="step-label">Grievance Category</span>
+                </div>
+                <div className={`step-connector ${currentStep > 2 ? "done" : ""}`} />
+                <div className={`step-item ${currentStep >= 3 ? (currentStep > 3 ? "done" : "active") : ""}`}>
+                  <div className="step-number">{currentStep > 3 ? "✓" : "3"}</div>
+                  <span className="step-label">Responsible Authority</span>
+                </div>
+                <div className={`step-connector ${currentStep > 3 ? "done" : ""}`} />
+                <div className={`step-item ${currentStep >= 4 ? "active done" : ""}`}>
+                  <div className="step-number">4</div>
+                  <span className="step-label">Action Roadmap</span>
+                </div>
+              </div>
+
               <p className="action-form-intro">
-                Select your State, District, and legal grievance category to route directly to the designated official authority and procedural filing roadmap.
+                Select your State, District, and legal grievance category to route directly to the designated official authority, statutory procedures, and required filing roadmap.
               </p>
 
               <form onSubmit={handleActionSubmit}>
@@ -369,7 +431,7 @@ function App() {
                   disabled={actionLoading}
                 />
 
-                <div className="input-field" style={{ marginTop: "14px" }}>
+                <div className="input-field" style={{ marginTop: "16px" }}>
                   <label className="input-label">
                     Legal Problem Category <span className="required-star">*</span>
                   </label>
@@ -410,7 +472,7 @@ function App() {
                     }
                   >
                     {actionLoading
-                      ? "Determining Jurisdiction & Routing..."
+                      ? "Determining Statutory Jurisdiction & Routing..."
                       : "Find Responsible Authority & Action Plan →"}
                   </button>
                 </div>
@@ -419,8 +481,27 @@ function App() {
           )}
         </section>
 
+        {/* ── Loading Indicator ── */}
+        {(loading || actionLoading) && (
+          <div className="loading-indicator">
+            <div className="loading-spinner"></div>
+            <div>
+              <div className="loading-text">
+                {loading
+                  ? "Querying verified Indian legal provisions and statutory references..."
+                  : "Routing to statutory authority and generating procedural roadmap..."}
+              </div>
+              <div className="loading-subtext">
+                {loading
+                  ? "Retrieving provisions from verified legal corpus • Grounding plain-language explanation"
+                  : "Identifying competent forum and filing roadmap from authority database"}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── Information Mode Results ───────────────────────────────────── */}
-        {mode === "information" && (
+        {mode === "information" && !loading && (
           <>
             {error && (
               <section className="result-card error-card">
@@ -460,7 +541,7 @@ function App() {
                       ))}
                     </ul>
                     <p className="redressal-disclaimer">
-                      Note: These are official redressal channels and guidance pathways, not a formal legal opinion.
+                      Note: These are official redressal channels and legal aid pathways (DLSA/NALSA), not a formal legal opinion.
                     </p>
                   </div>
                 )}
@@ -472,7 +553,7 @@ function App() {
                     onClick={askNyayaAI}
                     disabled={loading}
                   >
-                    {loading ? "Retrying..." : "↻ Retry"}
+                    {loading ? "Retrying..." : "↻ Retry Query"}
                   </button>
                 </div>
               </section>
@@ -481,17 +562,22 @@ function App() {
             {answer && answer.primary_result && (
               <section className="results">
                 <div className="question-heading">
-                  <span>Your question</span>
+                  <span>Queried Legal Topic</span>
                   <h2>{answer.question}</h2>
                 </div>
 
-                <CitationActions answer={answer} />
-
-                {/* Confidence & Relevance Banner */}
+                {/* Section A: Confidence & Relevance Signals */}
                 {answer.primary_result.confidence_level && (
                   <div className="confidence-banner">
                     <div className="confidence-main">
-                      <span className={`confidence-pill ${getConfidenceInfo(answer.primary_result.confidence_level).className}`}>
+                      <span
+                        className={`confidence-pill ${
+                          getConfidenceInfo(
+                            answer.primary_result.confidence_level,
+                            answer.primary_result.relevance_score
+                          ).className
+                        }`}
+                      >
                         {getConfidenceInfo(answer.primary_result.confidence_level).label}
                       </span>
                       {answer.primary_result.relevance_score !== undefined && (
@@ -501,16 +587,29 @@ function App() {
                       )}
                     </div>
                     <p className="confidence-note">
-                      Confidence reflects how closely the verified provision matches your question; it is not a legal opinion.
+                      Confidence reflects semantic and exact statutory match against verified Indian statutes; not a substitute for legal counsel.
                     </p>
                   </div>
                 )}
 
-                <div className="result-card">
-                  <div className="result-label">VERIFIED LEGAL PROVISION</div>
+                {/* Section B: AI Explanation (Plain Language) */}
+                <div className="result-card ai-card">
+                  <div className="result-label">SECTION 1 • PLAIN-LANGUAGE EXPLANATION</div>
+                  <h3 style={{ fontSize: "var(--text-lg)", marginBottom: "var(--space-3)", color: "var(--color-text-primary)" }}>
+                    In Simple Citizen Terms ({language.toUpperCase()})
+                  </h3>
+                  <p className="explanation">
+                    {answer.primary_result.ai_explanation}
+                  </p>
+                  <p className="ai-note">
+                    ℹ️ AI-synthesized explanation grounded strictly in the verified statutory provision below. Statutory text remains the authoritative law.
+                  </p>
+                </div>
 
-                  <h2>{answer.primary_result.reference_number}</h2>
-
+                {/* Section C: Verified Statutory Provision */}
+                <div className="result-card provision-card">
+                  <div className="result-label">SECTION 2 • VERIFIED STATUTORY PROVISION</div>
+                  <h2 className="provision-reference">{answer.primary_result.reference_number}</h2>
                   <p className="act-name">{answer.primary_result.act}</p>
 
                   <div className="verification">
@@ -518,39 +617,24 @@ function App() {
                   </div>
 
                   <div className="legal-text">
-                    <h3>Exact Legal Text</h3>
+                    <h3>Exact Statutory Text (Authoritative English)</h3>
                     <p>{answer.primary_result.exact_text}</p>
                   </div>
                 </div>
 
-                <div className="result-card">
-                  <div className="result-label">AI EXPLANATION</div>
-
-                  <h3>In simple language</h3>
-
-                  <p className="explanation">
-                    {answer.primary_result.ai_explanation}
-                  </p>
-
-                  <p className="ai-note">
-                    This is an AI-generated explanation and is not the legal text.
-                  </p>
-                </div>
-
+                {/* Section D: Case Law / Judicial Authorities */}
                 {answer.primary_result.case_authorities?.length > 0 && (
-                  <div className="result-card">
-                    <div className="result-label">LEGAL AUTHORITIES</div>
-
-                    <h3>Relevant Supreme Court cases</h3>
+                  <div className="result-card caselaw-card">
+                    <div className="result-label">SECTION 3 • JUDICIAL PRECEDENTS & AUTHORITIES</div>
+                    <h3 style={{ fontSize: "var(--text-lg)", marginBottom: "var(--space-3)", color: "var(--color-text-primary)" }}>
+                      Relevant Supreme Court & High Court Judgments
+                    </h3>
 
                     {answer.primary_result.case_authorities.map((authority) => (
                       <div className="case-authority" key={authority.case_id}>
                         <h4>{authority.case_name}</h4>
-
                         <p className="case-citation">{authority.citation}</p>
-
                         <p>{authority.legal_principle}</p>
-
                         <span>
                           {authority.court} • {authority.verification_status}
                         </span>
@@ -559,27 +643,31 @@ function App() {
                   </div>
                 )}
 
+                {/* Section E: Sources & Export Action Bar */}
                 <div className="result-card source-card">
-                  <div className="result-label">SOURCE</div>
-
+                  <div className="result-label">SECTION 4 • OFFICIAL CITATION & EXPORT</div>
                   <h3>{answer.primary_result.source_name}</h3>
-
                   <p>Citation: {answer.primary_result.official_citation}</p>
 
-                  <a
-                    href={answer.primary_result.source_url}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    View source →
-                  </a>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginTop: "12px" }}>
+                    <a
+                      href={answer.primary_result.source_url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      View Official Source →
+                    </a>
+                    <CitationActions answer={answer} />
+                  </div>
                 </div>
 
-                {/* Related Provisions */}
+                {/* Section F: Related Verified Provisions */}
                 {answer.related_results?.length > 0 && (
                   <div className="result-card related-results-card">
-                    <div className="result-label">RELATED VERIFIED PROVISIONS</div>
-                    <p className="related-intro">Other provisions identified from the verified corpus that may be relevant:</p>
+                    <div className="result-label">SECTION 5 • RELATED VERIFIED PROVISIONS</div>
+                    <p className="related-intro">
+                      Additional provisions identified from the verified corpus that may apply to your scenario:
+                    </p>
                     <div className="related-items-list">
                       {answer.related_results.map((rel, idx) => (
                         <div key={rel.provision_id || idx} className="related-item">
@@ -587,7 +675,11 @@ function App() {
                             <span className="related-ref">{rel.reference_number}</span>
                             <span className="related-act">{rel.act}</span>
                             {rel.confidence_level && (
-                              <span className={`related-confidence-badge ${getConfidenceInfo(rel.confidence_level).className}`}>
+                              <span
+                                className={`related-confidence-badge ${
+                                  getConfidenceInfo(rel.confidence_level).className
+                                }`}
+                              >
                                 {getConfidenceInfo(rel.confidence_level).label}
                                 {rel.relevance_score !== undefined && ` (${rel.relevance_score}%)`}
                               </span>
@@ -612,28 +704,25 @@ function App() {
               <section className="info-grid">
                 <div className="info-card">
                   <div className="card-icon">📜</div>
-                  <h3>Verified Legal Text</h3>
+                  <h3>Verified Statutory Corpus</h3>
                   <p>
-                    Exact legal provisions are kept separate from AI-generated
-                    explanations.
+                    Statutory provisions from the Constitution of India, BNS, BNSS, and BSA retrieved directly from the project's curated legal corpus.
                   </p>
                 </div>
 
                 <div className="info-card">
                   <div className="card-icon">🤖</div>
-                  <h3>Simple Explanation</h3>
+                  <h3>Plain-Language Explanations</h3>
                   <p>
-                    Complex legal concepts are explained in language that is easier
-                    for citizens to understand.
+                    Clear explanations generated in English, Hindi, Telugu, and Marathi without distorting the legal doctrine.
                   </p>
                 </div>
 
                 <div className="info-card">
                   <div className="card-icon">⚖️</div>
-                  <h3>Legal Authorities</h3>
+                  <h3>Judicial Authorities & Citations</h3>
                   <p>
-                    Relevant judicial authorities can be shown alongside the legal
-                    information.
+                    Supreme Court precedents, official citations, and one-click citation copy/download for legal research.
                   </p>
                 </div>
               </section>
@@ -642,7 +731,7 @@ function App() {
         )}
 
         {/* ── Action Mode Results ─────────────────────────────────────────── */}
-        {mode === "action" && (
+        {mode === "action" && !actionLoading && (
           <>
             {actionError && (
               <section className="result-card error-card">
@@ -651,8 +740,8 @@ function App() {
                   <div className="error-text">
                     <h3>
                       {actionErrorType === "network"
-                        ? "Unable to Connect"
-                        : "Routing Error"}
+                        ? "Unable to Connect to Routing Service"
+                        : "Authority Routing Notice"}
                     </h3>
                     <p>{actionError}</p>
                   </div>
@@ -664,7 +753,7 @@ function App() {
                     onClick={handleActionSubmit}
                     disabled={actionLoading}
                   >
-                    {actionLoading ? "Retrying..." : "↻ Retry"}
+                    {actionLoading ? "Retrying..." : "↻ Retry Routing"}
                   </button>
                 </div>
               </section>
@@ -673,7 +762,7 @@ function App() {
             {actionResult && (
               <section className="results">
                 <div className="question-heading">
-                  <span>Jurisdiction & Authority Routing</span>
+                  <span>Statutory Jurisdiction & Authority Routing</span>
                   <h2>
                     {PROBLEM_CATEGORIES.find((c) => c.id === selectedCategory)?.title || selectedCategory}
                     {" • "}
@@ -745,7 +834,7 @@ function App() {
                   <div className="card-icon">🏛️</div>
                   <h3>Statutory Jurisdiction</h3>
                   <p>
-                    Direct routing from State and District to the designated official forum.
+                    Precise routing from State and District to the designated official forum (e.g., District Consumer Forum, RERA Bench, DLSA).
                   </p>
                 </div>
 
@@ -753,15 +842,15 @@ function App() {
                   <div className="card-icon">📋</div>
                   <h3>Official Filing Procedure</h3>
                   <p>
-                    Statutory fees, formats, required evidence, and document checklists.
+                    Statutory fees, formats, required evidence, and document checklists directly from official regulations.
                   </p>
                 </div>
 
                 <div className="info-card">
                   <div className="card-icon">⚡</div>
-                  <h3>Escalation Pathway</h3>
+                  <h3>Statutory Escalation</h3>
                   <p>
-                    Statutory appellate authorities if the primary body fails to respond in time.
+                    Designated appellate bodies and timeframes if the primary authority fails to respond or dismisses the complaint.
                   </p>
                 </div>
               </section>
@@ -770,14 +859,12 @@ function App() {
         )}
 
         <section className="notice">
-          <strong>Important:</strong> NyayaAI provides legal information and
-          citizen assistance. It is not a substitute for advice from a
-          qualified legal professional.
+          <strong>Legal Disclaimer:</strong> NyayaAI provides legal information, verified statutory citations, and procedural guidance for Indian citizens. It does not provide legal advice and does not create an advocate-client relationship. For formal litigation or legal representation, consult a qualified advocate or your District Legal Services Authority (DLSA).
         </section>
       </main>
 
       <footer>
-        <p>NyayaAI • Indian Legal & Human Rights Assistant</p>
+        <p>NyayaAI • AI Legal Assistant for Indian Law • Built for Citizen Empowerment</p>
       </footer>
     </div>
   );
